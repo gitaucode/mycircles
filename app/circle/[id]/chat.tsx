@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -19,21 +20,26 @@ import { Typography } from '../../../constants/typography';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useMessages, ChatMessage } from '../../../hooks/useMessages';
 import { useCircles } from '../../../hooks/useCircles';
+import { CIRCLE_ICONS, USER_AVATARS } from '../../../constants/assets';
 
 // ── Avatar bubble ─────────────────────────────────────────────────────────────
 
 function SenderAvatar({
   initials,
   gradientIndex,
+  avatarId,
 }: {
   initials: string;
   gradientIndex: number;
+  avatarId?: string;
 }) {
-  const gradient = Colors.avatarGradients[gradientIndex % Colors.avatarGradients.length] as [string, string];
   return (
-    <LinearGradient colors={gradient} style={styles.senderAvatar}>
-      <Text style={styles.senderAvatarText}>{initials}</Text>
-    </LinearGradient>
+    <View style={styles.senderAvatarWrapper}>
+      <Image 
+        source={USER_AVATARS[avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+        style={styles.senderAvatarImg} 
+      />
+    </View>
   );
 }
 
@@ -83,6 +89,7 @@ function MessageRow({
         <SenderAvatar
           initials={item.senderInitials}
           gradientIndex={item.senderGradient}
+          avatarId={item.senderAvatarId}
         />
       )}
       <View style={styles.bubbleCol}>
@@ -150,9 +157,13 @@ export default function ChatScreen() {
             style={styles.headerMeta}
             onPress={() => router.push(`/circle/${id}/detail`)}
           >
-            <Text style={styles.circleName}>
-              {circle?.emoji ?? '💜'} {circle?.name ?? '…'}
-            </Text>
+            <View style={styles.headerTitleRow}>
+              <Image 
+                source={CIRCLE_ICONS[(circle?.emoji as keyof typeof CIRCLE_ICONS)] || CIRCLE_ICONS['circle_house']}
+                style={styles.headerCircleIcon}
+              />
+              <Text style={styles.circleName}>{circle?.name ?? '…'}</Text>
+            </View>
             <Text style={styles.memberCount}>
               {circle ? `${circle.memberCount} members` : ''}
             </Text>
@@ -255,7 +266,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backBtn: { padding: 4 },
-  headerMeta: { flex: 1 },
+  headerMeta: { flex: 1, gap: 2 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerCircleIcon: { width: 22, height: 22, resizeMode: 'contain' },
   circleName: {
     fontSize: 16,
     fontWeight: Typography.bold,
@@ -297,15 +310,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rowOwn: { flexDirection: 'row-reverse' },
-  senderAvatar: {
+  senderAvatarWrapper: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     flexShrink: 0,
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
   },
-  senderAvatarText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  senderAvatarImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   bubbleCol: { maxWidth: '72%', gap: 3 },
   senderName: { fontSize: 11, fontWeight: '700', color: Colors.muted, marginLeft: 4 },
   bubble: {

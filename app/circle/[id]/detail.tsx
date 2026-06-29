@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   Share,
   ActivityIndicator,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,12 +18,15 @@ import { Colors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import { useCircles } from '../../../hooks/useCircles';
 import { addCircleMember, AuthUser, createPlan, getCircleDetails, getCirclePlans, Plan, rsvpPlan, searchUsers } from '../../../data/api';
+import { CIRCLE_ICONS, USER_AVATARS } from '../../../constants/assets';
+import { useToast } from '../../providers/ToastProvider';
 
 const TABS = ['Plans', 'People'];
 
 export default function CircleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { circles } = useCircles();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('Plans');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
@@ -72,7 +75,7 @@ export default function CircleDetailScreen() {
   const handleCreatePlan = async () => {
     if (!id || creatingPlan) return;
     if (!planTitle.trim() || !planDate.trim()) {
-      Alert.alert('Plan details', 'Add a title and date for the plan.');
+      toast.show('Add a title and date for the plan.', 'error');
       return;
     }
 
@@ -92,7 +95,7 @@ export default function CircleDetailScreen() {
       setShowPlanForm(false);
       await loadPlans();
     } catch (err: any) {
-      Alert.alert('Could not create plan', err?.message ?? 'Try again.');
+      toast.show(err?.message ?? 'Could not create plan. Try again.', 'error');
     } finally {
       setCreatingPlan(false);
     }
@@ -105,7 +108,7 @@ export default function CircleDetailScreen() {
       await rsvpPlan(planId, status);
       await loadPlans();
     } catch (err: any) {
-      Alert.alert('Could not RSVP', err?.message ?? 'Try again.');
+      toast.show(err?.message ?? 'Could not RSVP. Try again.', 'error');
     } finally {
       setRsvpingPlanId(null);
     }
@@ -114,7 +117,7 @@ export default function CircleDetailScreen() {
   const handleSearchUsers = async () => {
     const query = memberQuery.trim();
     if (query.length < 2) {
-      Alert.alert('Search username', 'Type at least 2 characters.');
+      toast.show('Type at least 2 characters.', 'error');
       return;
     }
 
@@ -122,7 +125,7 @@ export default function CircleDetailScreen() {
     try {
       setUserResults(await searchUsers(query));
     } catch (err: any) {
-      Alert.alert('Search failed', err?.message ?? 'Could not search users.');
+      toast.show(err?.message ?? 'Could not search users.', 'error');
     } finally {
       setUserSearchLoading(false);
     }
@@ -134,12 +137,12 @@ export default function CircleDetailScreen() {
     setAddingUserId(user.id);
     try {
       await addCircleMember(id, user.username);
-      Alert.alert('Added', `${user.name} is now in ${circle?.name ?? 'this circle'}.`);
+      toast.show(`${user.name} is now in ${circle?.name ?? 'this circle'}.`, 'success');
       setMemberQuery('');
       setUserResults([]);
       loadMembers();
     } catch (err: any) {
-      Alert.alert('Could not add member', err?.message ?? 'Try again.');
+      toast.show(err?.message ?? 'Could not add member', 'error');
     } finally {
       setAddingUserId(null);
     }
@@ -172,9 +175,13 @@ export default function CircleDetailScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.navy} />
         </Pressable>
         <View style={styles.headerMeta}>
-          <Text style={styles.circleName}>
-            {circle.emoji ?? '💜'} {circle.name}
-          </Text>
+          <View style={styles.headerTitleRow}>
+            <Image 
+              source={CIRCLE_ICONS[circle.emoji as keyof typeof CIRCLE_ICONS] || CIRCLE_ICONS['circle_house']}
+              style={styles.headerCircleIcon}
+            />
+            <Text style={styles.circleName}>{circle.name}</Text>
+          </View>
           <Text style={styles.memberCount}>{circle.memberCount} members</Text>
         </View>
         <View style={styles.headerActions}>
@@ -346,12 +353,12 @@ export default function CircleDetailScreen() {
                 <View style={styles.userResults}>
                   {members.map((member) => (
                     <View key={member.id} style={styles.userRow}>
-                      <LinearGradient
-                        colors={(Colors.avatarGradients[member.gradientIndex] ?? Colors.gradientViolet) as [string, string]}
-                        style={styles.userAvatar}
-                      >
-                        <Text style={styles.userAvatarText}>{member.initials}</Text>
-                      </LinearGradient>
+                      <View style={styles.userAvatarWrapper}>
+                        <Image 
+                          source={USER_AVATARS[member.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+                          style={styles.userAvatarImg} 
+                        />
+                      </View>
                       <View style={styles.userMeta}>
                         <Text style={styles.userName}>{member.name}</Text>
                         <Text style={styles.userUsername}>{member.username}</Text>
@@ -363,10 +370,7 @@ export default function CircleDetailScreen() {
             </View>
 
             <View style={styles.inviteCard}>
-              <LinearGradient
-                colors={['#EDE8FF', '#F5EEFF']}
-                style={styles.inviteGradient}
-              >
+              <View style={styles.inviteContent}>
                 <Ionicons name="person-add-outline" size={24} color={Colors.violet} />
                 <Text style={styles.inviteTitle}>Invite people</Text>
                 <Text style={styles.inviteText}>
@@ -387,7 +391,7 @@ export default function CircleDetailScreen() {
                     <Text style={styles.copyBtnText}>Share Invite</Text>
                   </Pressable>
                 )}
-              </LinearGradient>
+              </View>
             </View>
 
             <View style={styles.searchCard}>
@@ -421,12 +425,12 @@ export default function CircleDetailScreen() {
                 <View style={styles.userResults}>
                   {userResults.map((user) => (
                     <View key={user.id} style={styles.userRow}>
-                      <LinearGradient
-                        colors={(Colors.avatarGradients[user.gradientIndex] ?? Colors.gradientViolet) as [string, string]}
-                        style={styles.userAvatar}
-                      >
-                        <Text style={styles.userAvatarText}>{user.initials}</Text>
-                      </LinearGradient>
+                      <View style={styles.userAvatarWrapper}>
+                        <Image 
+                          source={USER_AVATARS[user.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+                          style={styles.userAvatarImg} 
+                        />
+                      </View>
                       <View style={styles.userMeta}>
                         <Text style={styles.userName}>{user.name}</Text>
                         <Text style={styles.userUsername}>{user.username}</Text>
@@ -469,7 +473,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backBtn: { padding: 4 },
-  headerMeta: { flex: 1 },
+  headerMeta: { flex: 1, gap: 2 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerCircleIcon: { width: 22, height: 22, resizeMode: 'contain' },
   circleName: { fontSize: 16, fontWeight: Typography.bold, color: Colors.navy },
   memberCount: { fontSize: 12, color: Colors.muted },
   headerActions: { flexDirection: 'row', gap: 12 },
@@ -639,8 +645,18 @@ const styles = StyleSheet.create({
   },
 
   // Invite card
-  inviteCard: { borderRadius: 18, overflow: 'hidden' },
-  inviteGradient: {
+  inviteCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#ECEAF5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  inviteContent: {
     padding: 24,
     alignItems: 'center',
     gap: 10,
@@ -711,17 +727,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  userAvatar: {
+  userAvatarWrapper: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
   },
-  userAvatarText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '800',
+  userAvatarImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   userMeta: {
     flex: 1,

@@ -40,6 +40,7 @@ export type AuthUser = {
   email?: string | null;
   initials: string;
   gradientIndex: number;
+  avatarId?: string;
   bio?: string | null;
 };
 

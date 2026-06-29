@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +10,6 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PrimaryButton from '../../components/PrimaryButton';
@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCircles } from '../../hooks/useCircles';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
+import { CIRCLE_ICONS, USER_AVATARS } from '../../constants/assets';
 
 function getTimeGreeting() {
   const hour = new Date().getHours();
@@ -39,22 +40,18 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: tabClearance }]}
         showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={['#EDE8FF', '#F8F6FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>{getTimeGreeting()}, {firstName}</Text>
               <Text style={styles.subtitle}>Your private circles, plans, and chats.</Text>
             </View>
-            <LinearGradient colors={avatarGradient as [string, string]} style={styles.avatar}>
-              <Text style={styles.avatarText}>{user?.initials ?? '?'}</Text>
-            </LinearGradient>
+            <Image 
+              source={USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+              style={styles.userAvatar} 
+            />
           </View>
-        </LinearGradient>
+        </View>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Circles</Text>
@@ -97,9 +94,9 @@ export default function HomeScreen() {
                   style={({ pressed }) => [styles.circleRow, pressed && styles.pressed]}
                   onPress={() => router.push(`/circle/${circle.id}/chat`)}
                 >
-                  <LinearGradient colors={gradient as [string, string]} style={styles.circleIcon}>
-                    <Text style={styles.circleEmoji}>{circle.emoji}</Text>
-                  </LinearGradient>
+                  <View style={styles.circleIconContainer}>
+                    <Image source={CIRCLE_ICONS[circle.emoji as keyof typeof CIRCLE_ICONS]} style={styles.circleIcon} />
+                  </View>
                   <View style={styles.circleMeta}>
                     <Text style={styles.circleName}>{circle.name}</Text>
                     <Text style={styles.circleSub}>
@@ -123,7 +120,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
   content: { paddingBottom: 24 },
   header: {
     paddingHorizontal: 20,
@@ -137,26 +134,23 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   greeting: {
-    color: Colors.navy,
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.extrabold,
+    color: '#111827',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
   subtitle: {
     color: Colors.muted,
     fontSize: Typography.sm,
     marginTop: 4,
   },
-  avatar: {
+  userAvatar: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: Colors.white,
-    fontSize: Typography.sm,
-    fontWeight: Typography.extrabold,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#E5E7EB',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -167,19 +161,24 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   sectionTitle: {
-    color: Colors.navy,
-    fontSize: Typography.lg,
-    fontWeight: Typography.extrabold,
+    color: '#111827',
+    fontSize: 20,
+    fontWeight: '800',
   },
   centerCard: {
     marginHorizontal: 20,
-    backgroundColor: Colors.white,
-    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     padding: 22,
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#ECEAF5',
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 24,
+    elevation: 2,
   },
   emptyTitle: {
     color: Colors.navy,
@@ -201,26 +200,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ECEAF5',
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   pressed: { opacity: 0.82 },
-  circleIcon: {
+  circleIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
   },
-  circleEmoji: { fontSize: 23 },
+  circleIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
+  },
   circleMeta: { flex: 1, gap: 2 },
   circleName: {
-    color: Colors.navy,
-    fontSize: Typography.base,
-    fontWeight: Typography.extrabold,
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '800',
   },
   circleSub: {
     color: Colors.muted,

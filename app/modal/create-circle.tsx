@@ -6,19 +6,21 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { createCircle } from '../../data/api';
+import { CIRCLE_ICONS } from '../../constants/assets';
+import { useToast } from '../providers/ToastProvider';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-const EMOJI_OPTIONS = ['👯', '🏠', '🎓', '✨', '💼', '🌿', '🎮', '🎨', '🏋️', '🍕'];
+const ICON_OPTIONS = Object.keys(CIRCLE_ICONS);
 
 const CIRCLE_TYPES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Friends',  icon: 'people-outline' },
@@ -48,11 +50,12 @@ const PRIVACY_OPTIONS = [
 
 export default function CreateCircleModal() {
   const [name, setName]             = useState('');
-  const [emoji, setEmoji]           = useState('👯');
+  const [iconId, setIconId]         = useState(ICON_OPTIONS[0]);
   const [customType, setCustomType] = useState('');
   const [type, setType]             = useState('Friends');
   const [privacy, setPrivacy]       = useState('Invite only');
   const [isLoading, setIsLoading]   = useState(false);
+  const toast = useToast();
   const [createdCircle, setCreatedCircle] = useState<{
     id: string;
     name: string;
@@ -61,11 +64,11 @@ export default function CreateCircleModal() {
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      Alert.alert('Give it a name', 'Every circle needs a name.');
+      toast.show('Every circle needs a name.', 'error');
       return;
     }
     if (type === OTHER_LABEL && !customType.trim()) {
-      Alert.alert('Describe the type', 'Tell us what kind of circle this is.');
+      toast.show('Tell us what kind of circle this is.', 'error');
       return;
     }
 
@@ -75,14 +78,14 @@ export default function CreateCircleModal() {
     try {
       const { id, inviteToken } = await createCircle({
         name: name.trim(),
-        emoji,
+        emoji: iconId, // backend still uses 'emoji' field for now, but it's an iconId
         type: finalType as any,
         privacy: privacy as any,
       });
 
       setCreatedCircle({ id, name: name.trim(), inviteToken });
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Could not create circle. Try again.');
+      toast.show(err?.message ?? 'Could not create circle. Try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -147,17 +150,17 @@ export default function CreateCircleModal() {
           keyboardShouldPersistTaps="handled"
         >
 
-          {/* ── Emoji + Name row ────────────────────────────── */}
+          {/* ── Icon + Name row ────────────────────────────── */}
           <View style={styles.nameRow}>
-            {/* Emoji picker (tap to cycle) */}
+            {/* Icon picker (tap to cycle) */}
             <Pressable
               style={styles.emojiBtn}
               onPress={() => {
-                const i = EMOJI_OPTIONS.indexOf(emoji);
-                setEmoji(EMOJI_OPTIONS[(i + 1) % EMOJI_OPTIONS.length]);
+                const i = ICON_OPTIONS.indexOf(iconId);
+                setIconId(ICON_OPTIONS[(i + 1) % ICON_OPTIONS.length]);
               }}
             >
-              <Text style={styles.emojiText}>{emoji}</Text>
+              <Image source={CIRCLE_ICONS[iconId as keyof typeof CIRCLE_ICONS]} style={styles.iconImage} />
             </Pressable>
 
             <TextInput
@@ -171,7 +174,7 @@ export default function CreateCircleModal() {
               returnKeyType="done"
             />
           </View>
-          <Text style={styles.hint}>Tap the emoji to change it</Text>
+          <Text style={styles.hint}>Tap the icon to change it</Text>
 
           {/* ── Type ────────────────────────────────────────── */}
           <Text style={styles.sectionLabel}>Type</Text>
@@ -270,7 +273,7 @@ export default function CreateCircleModal() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FAF8FF',
+    backgroundColor: '#F9FAFB',
   },
 
   // Header
@@ -313,8 +316,13 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 4,
@@ -323,12 +331,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F3F0FF',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emojiText: {
-    fontSize: 24,
+  iconImage: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
   },
   nameInput: {
     flex: 1,
@@ -358,9 +368,14 @@ const styles = StyleSheet.create({
   // Custom type input
   customTypeInput: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#7655F0',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -411,10 +426,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   privacyRowActive: {
     borderColor: '#7655F0',
@@ -452,8 +472,8 @@ const styles = StyleSheet.create({
   // CTA
   createBtn: {
     marginTop: 24,
-    backgroundColor: '#7655F0',
-    borderRadius: 14,
+    backgroundColor: '#111827',
+    borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',

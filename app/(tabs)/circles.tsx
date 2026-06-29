@@ -6,6 +6,7 @@ import {
   Pressable,
   useWindowDimensions,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -17,8 +18,10 @@ import CircleCard from '../../components/CircleCard';
 import AddCircleCard from '../../components/AddCircleCard';
 import CircleActionSheet from '../../components/CircleActionSheet';
 import { Circle } from '../../data/mockData';
-import { useCircles } from '../../hooks/useCircles';
+import { Typography } from '../../constants/typography';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCircles } from '../../hooks/useCircles';
+import { CIRCLE_ICONS, USER_AVATARS } from '../../constants/assets';
 import { Colors } from '../../constants/colors';
 
 function getTimeGreeting(): { label: string; icon: string } {
@@ -35,11 +38,13 @@ function CirclesHeader({
   userName,
   userInitials,
   userGradientIndex,
+  userAvatarId,
 }: {
   circles: Circle[];
   userName: string;
   userInitials: string;
   userGradientIndex: number;
+  userAvatarId?: string;
 }) {
   const { label: greetLabel, icon: greetIcon } = getTimeGreeting();
   const totalPeople = circles.reduce((acc, c) => acc + c.memberCount, 0);
@@ -47,49 +52,46 @@ function CirclesHeader({
   const avatarGradient = Colors.avatarGradients[userGradientIndex] ?? Colors.gradientViolet;
 
   return (
-    <LinearGradient
-      colors={['#EDE8FF', '#F5F2FF', '#FAF8FF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.hero}
-    >
-      {/* Top bar */}
+    <View style={styles.hero}>
+      {/* Top bar (Actions only) */}
       <View style={styles.topBar}>
-        <Text style={styles.timeGreet}>
-          {greetLabel} {greetIcon}
-        </Text>
         <View style={styles.topBarRight}>
           <Pressable style={styles.bellBtn} hitSlop={8}>
-            <Ionicons name="notifications-outline" size={18} color="#5B3DD8" />
+            <Ionicons name="notifications-outline" size={18} color="#111827" />
             <View style={styles.notifDot} />
-          </Pressable>
-          <Pressable>
-            <LinearGradient colors={avatarGradient as [string, string]} style={styles.avatar}>
-              <Text style={styles.avatarText}>{userInitials}</Text>
-            </LinearGradient>
-            <View style={styles.onlineDot} />
           </Pressable>
         </View>
       </View>
 
-      {/* Greeting */}
+      {/* Centered Greeting Block */}
       <View style={styles.greetingBlock}>
-        <Text style={styles.greetingText}>Hey {firstName} 👋</Text>
+        <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.heroAvatarWrapper}>
+          <Image 
+            source={USER_AVATARS[userAvatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+            style={styles.heroAvatar} 
+          />
+          <View style={styles.onlineDotHero} />
+        </Pressable>
+
+        <Text style={styles.timeGreet}>
+          {greetLabel} {greetIcon}
+        </Text>
+        <Text style={styles.greetingText}>Hey {firstName}</Text>
         <Text style={styles.subtitleText}>What's happening in your world today?</Text>
 
         {/* Stats pills */}
         <View style={styles.pillsRow}>
           <View style={styles.statPill}>
-            <Ionicons name="people" size={12} color="#7655F0" />
+            <Ionicons name="people" size={12} color="#111827" />
             <Text style={styles.statPillText}>{circles.length} circles</Text>
           </View>
           <View style={styles.statPill}>
-            <Ionicons name="person" size={12} color="#7655F0" />
+            <Ionicons name="person" size={12} color="#111827" />
             <Text style={styles.statPillText}>{totalPeople} people</Text>
           </View>
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -128,6 +130,7 @@ export default function CirclesScreen() {
               userName={user?.name ?? ''}
               userInitials={user?.initials ?? '?'}
               userGradientIndex={user?.gradientIndex ?? 0}
+              userAvatarId={user?.avatarId}
             />
 
 
@@ -173,10 +176,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   safe: {
     flex: 1,
-    backgroundColor: '#EDE8FF',
+    backgroundColor: '#F9FAFB',
   },
   list: {
-    backgroundColor: '#FAF8FF',
+    backgroundColor: '#F9FAFB',
   },
   itemWrapper: {
     flex: 1,
@@ -190,31 +193,26 @@ const styles = StyleSheet.create({
   },
 
 
-  // ── Hero ──────────────────────────────────────────────
   hero: {
     paddingTop: 6,
-    paddingBottom: 24,
-    shadowColor: '#7655F0',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.09,
-    shadowRadius: 16,
-    elevation: 5,
-    marginBottom: 16,
+    paddingBottom: 32,
   },
 
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 4,
-    marginBottom: 18,
+    marginBottom: 8,
   },
   timeGreet: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#7265A8',
-    letterSpacing: 0.1,
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   topBarRight: {
     flexDirection: 'row',
@@ -225,79 +223,96 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(118, 85, 240, 0.09)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   notifDot: {
     position: 'absolute',
     top: 7,
-    right: 6,
+    right: 8,
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#F04444',
+    backgroundColor: '#EF4444',
     borderWidth: 1.5,
-    borderColor: '#EDE8FF',
+    borderColor: '#FFFFFF',
   },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
+  heroAvatarWrapper: {
+    marginBottom: 8,
+    position: 'relative',
   },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+  heroAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#E5E7EB',
   },
-  onlineDot: {
+  onlineDotHero: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: '#22C55E',
-    borderWidth: 1.5,
-    borderColor: '#EDE8FF',
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
 
   greetingBlock: {
+    alignItems: 'center',
     paddingHorizontal: 20,
-    gap: 6,
+    gap: 8,
   },
   greetingText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#2A1F5E',
-    lineHeight: 34,
-    letterSpacing: -0.3,
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#111827',
+    letterSpacing: -1,
+    lineHeight: 40,
+    textAlign: 'center',
   },
   subtitleText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#7265A8',
-    lineHeight: 20,
-    marginBottom: 4,
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   pillsRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: 8,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(118, 85, 240, 0.10)',
-    paddingVertical: 5,
-    paddingHorizontal: 11,
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   statPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#5B3DD8',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
   },
 });

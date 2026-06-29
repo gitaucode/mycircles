@@ -6,20 +6,20 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
 import { joinByInvite } from '../../data/api';
+import { useToast } from '../providers/ToastProvider';
 
 export default function JoinCircleModal() {
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
 
   async function handleJoin() {
     const clean = token.trim();
@@ -27,21 +27,11 @@ export default function JoinCircleModal() {
     setIsLoading(true);
     try {
       const { circleId } = await joinByInvite(clean);
-      Alert.alert(
-        '🎉 Joined!',
-        "You've been added to the circle.",
-        [
-          {
-            text: 'Open Chat',
-            onPress: () => {
-              router.back();
-              router.push(`/circle/${circleId}/chat`);
-            },
-          },
-        ]
-      );
+      toast.show('Joined successfully!', 'success');
+      router.back();
+      router.push(`/circle/${circleId}/chat`);
     } catch (err: any) {
-      Alert.alert('Invalid link', err?.message ?? 'That invite link is invalid or expired.');
+      toast.show(err?.message ?? 'That invite link is invalid or expired.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -64,12 +54,9 @@ export default function JoinCircleModal() {
 
         <View style={styles.body}>
           {/* Illustration */}
-          <LinearGradient
-            colors={['#EDE8FF', '#F5EEFF']}
-            style={styles.illustration}
-          >
+          <View style={styles.illustration}>
             <Text style={styles.illustrationEmoji}>🔗</Text>
-          </LinearGradient>
+          </View>
 
           <Text style={styles.headline}>Enter your invite code</Text>
           <Text style={styles.subtext}>
@@ -122,7 +109,7 @@ export default function JoinCircleModal() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAF8FF' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
   flex: { flex: 1 },
 
   header: {
@@ -140,7 +127,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  illustration: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ECEAF5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
 
   body: {
     flex: 1,
@@ -174,9 +176,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 10,
@@ -191,8 +198,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     width: '100%',
-    backgroundColor: Colors.violet,
-    borderRadius: 14,
+    backgroundColor: '#111827',
+    borderRadius: 999,
     paddingVertical: 16,
     marginTop: 8,
   },

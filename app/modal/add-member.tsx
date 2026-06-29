@@ -7,16 +7,17 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
 import { searchUsers, addCircleMember, AuthUser } from '../../data/api';
+import { USER_AVATARS } from '../../constants/assets';
+import { useToast } from '../providers/ToastProvider';
 
 export default function AddMemberModal() {
   const { circleId } = useLocalSearchParams<{ circleId: string }>();
@@ -25,6 +26,7 @@ export default function AddMemberModal() {
   const [isSearching, setIsSearching] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
+  const toast = useToast();
 
   async function handleSearch(text: string) {
     setQuery(text);
@@ -47,7 +49,7 @@ export default function AddMemberModal() {
       await addCircleMember(circleId, user.username);
       setAdded((prev) => new Set([...prev, user.id]));
     } catch (err: any) {
-      Alert.alert('Could not add', err?.message ?? 'Try again.');
+      toast.show(err?.message ?? 'Could not add member', 'error');
     } finally {
       setAdding(null);
     }
@@ -96,14 +98,16 @@ export default function AddMemberModal() {
             ) : null
           }
           renderItem={({ item }) => {
-            const gradient = Colors.avatarGradients[item.gradientIndex % Colors.avatarGradients.length] as [string, string];
             const isAdded = added.has(item.id);
             const isAddingThis = adding === item.id;
             return (
               <View style={styles.userRow}>
-                <LinearGradient colors={gradient} style={styles.avatar}>
-                  <Text style={styles.avatarText}>{item.initials}</Text>
-                </LinearGradient>
+                <View style={styles.avatarWrapper}>
+                  <Image 
+                    source={USER_AVATARS[item.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+                    style={styles.avatarImg} 
+                  />
+                </View>
                 <View style={styles.userInfo}>
                   <Text style={styles.userName}>{item.name}</Text>
                   <Text style={styles.userHandle}>{item.username}</Text>
@@ -133,7 +137,7 @@ export default function AddMemberModal() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAF8FF' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -159,9 +163,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   searchInput: { flex: 1, fontSize: 15, color: Colors.navy },
   list: { paddingHorizontal: 16, gap: 10 },
@@ -172,22 +181,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ECEAF5',
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  avatarWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
   },
-  avatarText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   userInfo: { flex: 1 },
   userName: { fontSize: 15, fontWeight: '700', color: Colors.navy },
   userHandle: { fontSize: 12, color: Colors.muted, marginTop: 1 },
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.violet,
+    backgroundColor: '#111827',
     alignItems: 'center', justifyContent: 'center',
   },
   addBtnDone: { backgroundColor: Colors.success },

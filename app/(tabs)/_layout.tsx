@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { View, Text, StyleSheet, ColorValue } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ColorValue,
+  Pressable,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 
+// ── Animated tab icon ─────────────────────────────────────────────────────────
 function TabIcon({
   name,
   color,
@@ -17,10 +25,45 @@ function TabIcon({
   label: string;
 }) {
   const outlineName = `${name}-outline` as keyof typeof Ionicons.glyphMap;
+  const scale = useRef(new Animated.Value(focused ? 1 : 0.92)).current;
+  const pillOpacity = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const pillScale = useRef(new Animated.Value(focused ? 1 : 0.7)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: focused ? 1.08 : 0.92,
+        friction: 6,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+      Animated.spring(pillOpacity, {
+        toValue: focused ? 1 : 0,
+        friction: 7,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+      Animated.spring(pillScale, {
+        toValue: focused ? 1 : 0.7,
+        friction: 7,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [focused]);
 
   return (
     <View style={styles.tabItem}>
-      <Ionicons name={focused ? name : outlineName} size={22} color={color} />
+      {/* Active indicator pill behind icon */}
+      <Animated.View
+        style={[
+          styles.activePill,
+          { opacity: pillOpacity, transform: [{ scaleX: pillScale }] },
+        ]}
+      />
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Ionicons name={focused ? name : outlineName} size={22} color={color} />
+      </Animated.View>
       <Text
         style={[styles.tabLabel, { color }]}
         adjustsFontSizeToFit
@@ -32,10 +75,23 @@ function TabIcon({
   );
 }
 
+// ── Custom tab button — removes Android grey ripple ───────────────────────────
+function TabButton(props: any) {
+  return (
+    <Pressable
+      {...props}
+      android_ripple={null}
+      style={({ pressed }) => [
+        props.style,
+        { opacity: pressed ? 0.7 : 1 },
+      ]}
+    />
+  );
+}
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading } = useAuth();
-  const bottomInset = Math.max(insets.bottom, 8);
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -51,17 +107,16 @@ export default function TabLayout() {
         tabBarStyle: [
           styles.tabBar,
           {
-            height: 68 + bottomInset,
-            paddingBottom: bottomInset,
+            bottom: Math.max(insets.bottom + 12, 24),
           },
         ],
         tabBarItemStyle: styles.tabBarItem,
-        // Expand the icon slot so our custom TabIcon (icon + label) fills the
-        // full tab item height and can center itself properly.
         tabBarIconStyle: styles.tabBarIcon,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#7655F0',
-        tabBarInactiveTintColor: '#8E94A3',
+        tabBarActiveTintColor: '#111827',
+        tabBarInactiveTintColor: '#9CA3AF',
+        safeAreaInsets: { bottom: 0 },
+        tabBarButton: (props) => <TabButton {...props} />,
       }}
     >
       {/* ── Visible tabs ────────────────────────────────── */}
@@ -90,16 +145,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="home"
+        name="explore"
         options={{
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="grid" color={color} focused={focused} label="Dashboard" />
+            <TabIcon name="compass" color={color} focused={focused} label="Explore" />
           ),
         }}
       />
 
       {/* ── Hidden tabs (routes still accessible) ──────── */}
       <Tabs.Screen name="create" options={{ href: null }} />
+      <Tabs.Screen name="home" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -107,29 +163,23 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    marginHorizontal: 20,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F0EFF7',
-    borderRadius: 0,
-    shadowColor: '#111827',
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 14,
-    paddingTop: 7,
+    borderTopWidth: 0,
+    borderRadius: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 24,
+    elevation: 8,
+    height: 64,
+    paddingBottom: 0,
     overflow: 'visible',
   },
   tabBarItem: {
     flex: 1,
-    // Full height so the icon slot fills the whole pressable area
     height: '100%',
   },
-  // The icon slot React Navigation creates around our tabBarIcon render prop.
-  // By default it's a tiny fixed box — we override it to fill the tab item
-  // so our custom View (icon + label) can centre itself properly.
   tabBarIcon: {
     flex: 1,
     width: '100%',
@@ -144,8 +194,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    // Horizontal padding gives the label room; avoid squeezing to zero
     paddingHorizontal: 2,
+    position: 'relative',
+  },
+  activePill: {
+    position: 'absolute',
+    top: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
   },
   tabLabel: {
     fontSize: 10,
@@ -153,7 +211,6 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     textAlign: 'center',
     includeFontPadding: false,
-    // Allow text to measure its full natural width inside the flex cell
     alignSelf: 'center',
   },
 });

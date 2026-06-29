@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
-import { Circle } from '../data/mockData';
+import { CIRCLE_ICONS } from '../constants/assets';
+import { Circle, USERS } from '../data/mockData';
 import AvatarStack from './AvatarStack';
 
 type Props = {
@@ -25,8 +26,10 @@ export default function CircleCard({ circle, onPress, onLongPress }: Props) {
   const gradColors = CARD_GRADIENTS[circle.gradientIndex % CARD_GRADIENTS.length];
 
 
-  // Show up to 3 avatar indices from memberIds (parsed as numbers for AvatarStack)
-  const avatarIndices = circle.memberIds.slice(0, 3).map((_, i) => i);
+  // Get actual avatar IDs from mock USERS
+  const memberAvatarIds = circle.memberIds
+    .slice(0, 3)
+    .map(id => USERS.find(u => u.id === id)?.avatarId || 'avatar_1');
 
   // Determine what to show in the bottom slot (priority: event > last message > memory > vibe)
   const bottomContent = circle.upcomingEvent
@@ -55,10 +58,10 @@ export default function CircleCard({ circle, onPress, onLongPress }: Props) {
       >
         {/* ── Top: emoji (left) + avatars + unread badge (right) ─ */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>{circle.emoji}</Text>
+          <Image source={CIRCLE_ICONS[circle.emoji as keyof typeof CIRCLE_ICONS]} style={styles.circleIcon} />
 
-          <View style={styles.topRight}>
-            <AvatarStack users={avatarIndices} size={22} />
+          <View style={styles.headerRight}>
+            <AvatarStack avatarIds={memberAvatarIds} size={22} />
           </View>
         </View>
 
@@ -106,12 +109,18 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 8,
     borderRadius: 24,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   card: {
     padding: 16,
     height: 200,
     justifyContent: 'space-between',
+    borderRadius: 24,
+    overflow: 'hidden',
   },
 
   // Top
@@ -120,11 +129,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  emoji: {
-    fontSize: 34,
-    lineHeight: 40,
+  circleIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
   },
-  topRight: {
+  headerRight: {
     alignItems: 'flex-end',
     gap: 4,
   },

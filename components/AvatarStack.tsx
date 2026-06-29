@@ -1,36 +1,21 @@
 import React from 'react';
-import { View, Image, Text, StyleSheet } from 'react-native';
-
-/**
- * Reliable avatar URLs — using picsum.photos with a fixed seed so they
- * always resolve to the same person, never go blank, and have no CORS issues.
- * Each ID maps to a distinct portrait-style photo.
- */
-const AVATARS = [
-  'https://i.pravatar.cc/100?img=47', // Amani  – index 0
-  'https://i.pravatar.cc/100?img=44', // Zara   – index 1
-  'https://i.pravatar.cc/100?img=12', // Brian  – index 2
-  'https://i.pravatar.cc/100?img=56', // Wanja  – index 3
-  'https://i.pravatar.cc/100?img=48', // Njeri  – index 4
-  'https://i.pravatar.cc/100?img=15', // Kevin  – index 5
-  'https://i.pravatar.cc/100?img=32', // Leo    – index 6
-  'https://i.pravatar.cc/100?img=45', // Imani  – index 7
-];
+import { View, Image, StyleSheet } from 'react-native';
+import { USER_AVATARS } from '../constants/assets';
 
 type Props = {
-  users: number[];
+  avatarIds: string[];
   size?: number;
 };
 
-export default function AvatarStack({ users, size = 24 }: Props) {
+export default function AvatarStack({ avatarIds, size = 24 }: Props) {
   return (
     <View style={styles.container}>
-      {users.map((u, i) => {
-        const uri = AVATARS[u % AVATARS.length];
+      {avatarIds.map((id, i) => {
+        const source = USER_AVATARS[id as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1'];
         return (
           <Image
-            key={`${u}-${i}`}
-            source={{ uri }}
+            key={`${id}-${i}`}
+            source={source}
             style={[
               styles.avatar,
               {
@@ -38,7 +23,7 @@ export default function AvatarStack({ users, size = 24 }: Props) {
                 height: size,
                 borderRadius: size / 2,
                 marginLeft: i === 0 ? 0 : -(size * 0.3),
-                zIndex: users.length - i,
+                zIndex: avatarIds.length - i,
               },
             ]}
           />

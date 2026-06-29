@@ -6,6 +6,7 @@ export type User = {
   username: string;
   initials: string;
   avatarGradientIndex: number;
+  avatarId?: string;
   bio?: string;
 };
 
@@ -95,14 +96,14 @@ export type Memory = {
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const USERS: User[] = [
-  { id: 'u1', name: 'Maya', username: '@maya', initials: 'M', avatarGradientIndex: 0, bio: 'Keeping my people close.' },
-  { id: 'u2', name: 'Amani', username: '@amani', initials: 'A', avatarGradientIndex: 1 },
-  { id: 'u3', name: 'Brian', username: '@brian', initials: 'B', avatarGradientIndex: 2 },
-  { id: 'u4', name: 'Wanja', username: '@wanja', initials: 'W', avatarGradientIndex: 3 },
-  { id: 'u5', name: 'Njeri', username: '@njeri', initials: 'N', avatarGradientIndex: 4 },
-  { id: 'u6', name: 'Tasha', username: '@tasha', initials: 'T', avatarGradientIndex: 5 },
-  { id: 'u7', name: 'Kevin', username: '@kevin', initials: 'K', avatarGradientIndex: 6 },
-  { id: 'u8', name: 'Imani', username: '@imani', initials: 'I', avatarGradientIndex: 7 },
+  { id: 'u1', name: 'Maya', username: '@maya', initials: 'M', avatarGradientIndex: 0, avatarId: 'avatar_1', bio: 'Keeping my people close.' },
+  { id: 'u2', name: 'Amani', username: '@amani', initials: 'A', avatarGradientIndex: 1, avatarId: 'avatar_2' },
+  { id: 'u3', name: 'Brian', username: '@brian', initials: 'B', avatarGradientIndex: 2, avatarId: 'avatar_3' },
+  { id: 'u4', name: 'Wanja', username: '@wanja', initials: 'W', avatarGradientIndex: 3, avatarId: 'avatar_4' },
+  { id: 'u5', name: 'Njeri', username: '@njeri', initials: 'N', avatarGradientIndex: 4, avatarId: 'avatar_5' },
+  { id: 'u6', name: 'Tasha', username: '@tasha', initials: 'T', avatarGradientIndex: 5, avatarId: 'avatar_6' },
+  { id: 'u7', name: 'Kevin', username: '@kevin', initials: 'K', avatarGradientIndex: 6, avatarId: 'avatar_1' },
+  { id: 'u8', name: 'Imani', username: '@imani', initials: 'I', avatarGradientIndex: 7, avatarId: 'avatar_2' },
 ];
 
 export const CURRENT_USER = USERS[0]; // Maya
@@ -113,7 +114,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c1',
     name: 'Besties',
-    emoji: '❤️',
+    emoji: 'heart',
     memberCount: 6,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6'],
     vibe: 'chaotic 🤪',
@@ -129,7 +130,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c2',
     name: 'Campus Crew',
-    emoji: '🎓',
+    emoji: 'cap',
     memberCount: 12,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8'],
     vibe: 'always grinding 📚',
@@ -144,7 +145,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c3',
     name: 'Family',
-    emoji: '🏠',
+    emoji: 'house',
     memberCount: 7,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7'],
     vibe: 'love & loyalty 💚',
@@ -160,7 +161,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c4',
     name: 'Creators',
-    emoji: '✨',
+    emoji: 'sparkles',
     memberCount: 8,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8'],
     vibe: 'build mode 🚀',
@@ -175,7 +176,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c5',
     name: 'Study Squad',
-    emoji: '📚',
+    emoji: 'cap',
     memberCount: 8,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8'],
     vibe: 'locked in 😤',
@@ -189,7 +190,7 @@ export const CIRCLES: Circle[] = [
   {
     id: 'c6',
     name: 'Weekend Plans',
-    emoji: '🌿',
+    emoji: 'leaf',
     memberCount: 6,
     memberIds: ['u1', 'u2', 'u3', 'u4', 'u5', 'u6'],
     vibe: 'outside 🌿',
@@ -210,7 +211,7 @@ export const TIME_CAPSULES: TimeCapsule[] = [
     id: 'tc1',
     circleId: 'c1',
     circleName: 'Besties',
-    circleEmoji: '❤️',
+    circleEmoji: 'heart',
     senderName: 'Amani',
     openDate: 'Jun 26, 2026',
     daysUntilOpen: 3,

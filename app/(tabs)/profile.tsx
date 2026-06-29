@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,17 @@ import {
   Pressable,
   Alert,
   Share,
+  Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCircles } from '../../hooks/useCircles';
 import { Colors } from '../../constants/colors';
+import { USER_AVATARS } from '../../constants/assets';
+import { useToast } from '../providers/ToastProvider';
 
 const SETTINGS = [
   {
@@ -22,40 +25,40 @@ const SETTINGS = [
     icon: 'person-outline' as const,
     label: 'Account',
     sub: 'Manage your account details',
-    color: '#7655F0',
-    bg: '#EDE8FF',
+    color: '#111827',
+    bg: '#F3F4F6',
   },
   {
     id: 'privacy',
     icon: 'shield-outline' as const,
     label: 'Privacy',
     sub: 'Control your privacy settings',
-    color: '#2563EB',
-    bg: '#EFF6FF',
+    color: '#111827',
+    bg: '#F3F4F6',
   },
   {
     id: 'notifs',
     icon: 'notifications-outline' as const,
     label: 'Notifications',
     sub: 'Manage your notification preferences',
-    color: '#F59E0B',
-    bg: '#FFFBEB',
+    color: '#111827',
+    bg: '#F3F4F6',
   },
   {
     id: 'invite',
     icon: 'person-add-outline' as const,
     label: 'Invite friends',
     sub: 'Bring your friends to My Circles',
-    color: '#22C55E',
-    bg: '#F0FDF4',
+    color: '#111827',
+    bg: '#F3F4F6',
   },
   {
     id: 'help',
     icon: 'help-circle-outline' as const,
     label: 'Help & support',
     sub: 'Get help and learn more',
-    color: '#6B7280',
-    bg: '#F9FAFB',
+    color: '#111827',
+    bg: '#F3F4F6',
   },
 ];
 
@@ -64,6 +67,8 @@ export default function ProfileScreen() {
   const tabClearance = 86 + Math.max(insets.bottom, 12);
   const { user, logout } = useAuth();
   const { circles } = useCircles();
+  const toast = useToast();
+  const [showLogout, setShowLogout] = useState(false);
   const displayName = user?.name ?? 'Your profile';
   const username = user?.username ?? '@you';
   const initials = user?.initials ?? displayName.slice(0, 1).toUpperCase();
@@ -73,21 +78,13 @@ export default function ProfileScreen() {
   const shareLink = `mycircles.app/${username.replace(/^@/, '')}`;
 
   function handleLogout() {
-    Alert.alert(
-      'Log out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/');
-          },
-        },
-      ],
-    );
+    setShowLogout(true);
+  }
+
+  async function confirmLogout() {
+    setShowLogout(false);
+    await logout();
+    router.replace('/');
   }
 
   return (
@@ -104,31 +101,28 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.headerRight}>
             <Pressable style={styles.bellBtn}>
-              <Ionicons name="notifications-outline" size={19} color="#7655F0" />
+              <Ionicons name="notifications-outline" size={19} color="#111827" />
               <View style={styles.notifDot} />
             </Pressable>
-            <LinearGradient colors={gradient as [string, string]} style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>{initials}</Text>
-            </LinearGradient>
+            <Image 
+              source={USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+              style={styles.headerAvatarImage} 
+            />
           </View>
         </View>
 
         {/* ── Profile Card ── */}
-        <LinearGradient
-          colors={['#EDE8FF', '#F5EEFF', '#FFE9F5']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.card}
-        >
+        <View style={styles.card}>
           {/* Avatar */}
-          <View style={styles.avatarWrap}>
-            <LinearGradient colors={gradient as [string, string]} style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </LinearGradient>
+          <Pressable style={styles.avatarWrap} onPress={() => router.push('/modal/edit-avatar')}>
+            <Image 
+              source={USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+              style={styles.avatarImage} 
+            />
             <View style={styles.badge}>
-              <Ionicons name="sparkles" size={11} color="#fff" />
+              <Ionicons name="pencil" size={11} color="#fff" />
             </View>
-          </View>
+          </Pressable>
 
           {/* Name + username + bio */}
           <Text style={styles.name}>{displayName}</Text>
@@ -138,31 +132,31 @@ export default function ProfileScreen() {
           {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Ionicons name="heart-outline" size={12} color="#C4A8F0" />
+            <Ionicons name="heart-outline" size={12} color="#D1D5DB" />
             <View style={styles.dividerLine} />
           </View>
 
           {/* Stats */}
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Ionicons name="people-outline" size={18} color="#7655F0" />
+              <Ionicons name="people-outline" size={18} color="#111827" />
               <Text style={styles.statNum}>{circles.length}</Text>
               <Text style={styles.statLbl}>Circles</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Ionicons name="person-outline" size={18} color="#F4845F" />
+              <Ionicons name="person-outline" size={18} color="#111827" />
               <Text style={styles.statNum}>{totalPeople}</Text>
               <Text style={styles.statLbl}>People</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Ionicons name="images-outline" size={18} color="#22B5CC" />
+              <Ionicons name="images-outline" size={18} color="#111827" />
               <Text style={styles.statNum}>0</Text>
               <Text style={styles.statLbl}>Memories</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ── Action buttons ── */}
         <View style={styles.actionsRow}>
@@ -174,7 +168,7 @@ export default function ProfileScreen() {
               Share.share({ message: `Join me on My Circles! ${shareLink}` })
             }
           >
-            <Ionicons name="share-outline" size={15} color="#7655F0" />
+            <Ionicons name="share-outline" size={15} color="#111827" />
             <Text style={styles.actionText}>Share Card</Text>
           </Pressable>
 
@@ -182,9 +176,9 @@ export default function ProfileScreen() {
             style={({ pressed }) =>
               [styles.actionBtn, pressed && { opacity: 0.82 }]
             }
-            onPress={() => Alert.alert('QR Code', 'Coming soon!')}
+            onPress={() => toast.show('QR Code coming soon!', 'info')}
           >
-            <Ionicons name="qr-code-outline" size={15} color="#7655F0" />
+            <Ionicons name="qr-code-outline" size={15} color="#111827" />
             <Text style={styles.actionText}>Show QR</Text>
           </Pressable>
 
@@ -192,9 +186,9 @@ export default function ProfileScreen() {
             style={({ pressed }) =>
               [styles.actionBtn, pressed && { opacity: 0.82 }]
             }
-            onPress={() => Alert.alert('Link copied', shareLink)}
+            onPress={() => toast.show('Link copied!', 'success')}
           >
-            <Ionicons name="link-outline" size={15} color="#7655F0" />
+            <Ionicons name="link-outline" size={15} color="#111827" />
             <Text style={styles.actionText}>Copy Link</Text>
           </Pressable>
         </View>
@@ -209,7 +203,7 @@ export default function ProfileScreen() {
                 i < SETTINGS.length - 1 && styles.rowBorder,
                 pressed && { backgroundColor: '#F9F8FF' },
               ]}
-              onPress={() => Alert.alert(s.label, 'Coming soon!')}
+              onPress={() => toast.show('Coming soon!', 'info')}
             >
               <View style={[styles.iconBox, { backgroundColor: s.bg }]}>
                 <Ionicons name={s.icon} size={18} color={s.color} />
@@ -234,12 +228,39 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>My Circles v1.0.0</Text>
       </ScrollView>
+
+      {/* ── Logout Modal ── */}
+      <Modal visible={showLogout} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Log out</Text>
+            <Text style={styles.modalText}>Are you sure you want to log out of your account?</Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: '#F3F4F6' }]}
+                onPress={() => setShowLogout(false)}
+              >
+                <Text style={[styles.modalBtnText, { color: '#111827' }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: '#EF4444' }]}
+                onPress={confirmLogout}
+              >
+                <Text style={[styles.modalBtnText, { color: '#FFFFFF' }]}>Log out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAF8FF' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
 
   header: {
     flexDirection: 'row',
@@ -250,14 +271,14 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   pageTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1040',
-    letterSpacing: -0.3,
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#111827',
+    letterSpacing: -1,
   },
   pageSubtitle: {
     fontSize: 13,
-    color: '#7265A8',
+    color: '#6B7280',
     fontWeight: '500',
     marginTop: 2,
   },
@@ -266,7 +287,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(118, 85, 240, 0.09)',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -281,48 +302,42 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FAF8FF',
   },
-  headerAvatar: {
+  headerAvatarImage: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
   },
 
   // Card
   card: {
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     gap: 5,
     borderWidth: 1,
-    borderColor: 'rgba(118,85,240,0.12)',
-    shadowColor: '#7655F0',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 5,
+    borderColor: '#ECEAF5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   avatarWrap: {
     marginBottom: 8,
+    position: 'relative',
   },
-  avatar: {
+  avatarImage: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '900',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#E5E7EB',
   },
   badge: {
     position: 'absolute',
@@ -331,27 +346,27 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#7655F0',
+    backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#EDE8FF',
+    borderColor: '#FFFFFF',
   },
   name: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#2A1F5E',
+    color: '#111827',
     letterSpacing: -0.4,
     marginTop: 4,
   },
   username: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7655F0',
+    color: '#111827',
   },
   bio: {
     fontSize: 13,
-    color: '#7265A8',
+    color: '#6B7280',
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 2,
@@ -366,7 +381,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(118,85,240,0.15)',
+    backgroundColor: '#F3F4F6',
   },
   statsRow: {
     flexDirection: 'row',
@@ -377,18 +392,18 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#2A1F5E',
+    color: '#111827',
     lineHeight: 24,
   },
   statLbl: {
     fontSize: 11,
-    color: '#7265A8',
+    color: '#6B7280',
     fontWeight: '600',
   },
   statDivider: {
     width: 1,
     height: 36,
-    backgroundColor: 'rgba(118,85,240,0.12)',
+    backgroundColor: '#F3F4F6',
   },
 
   // Actions
@@ -404,21 +419,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#fff',
+    backgroundColor: '#F3F4F6',
     borderRadius: 14,
     paddingVertical: 13,
-    borderWidth: 1,
-    borderColor: 'rgba(118,85,240,0.15)',
-    shadowColor: '#7655F0',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   actionText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#7655F0',
+    color: '#111827',
   },
 
   // Settings
@@ -428,12 +436,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 14,
     overflow: 'hidden',
-    shadowColor: '#1A1040',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 1,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   row: {
     flexDirection: 'row',
@@ -465,14 +475,76 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontWeight: '400',
   },
-
-
+  logoutText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
   version: {
     textAlign: 'center',
-    fontSize: 11,
-    color: '#C4B5FD',
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 20,
+    marginBottom: 40,
     fontWeight: '500',
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
     marginBottom: 8,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 
   logoutBtn: {

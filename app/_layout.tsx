@@ -5,13 +5,15 @@ import { StyleSheet } from 'react-native';
 
 import { AuthProvider } from '../contexts/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from './providers/ToastProvider';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <GestureHandlerRootView style={styles.container}>
-          <StatusBar style="dark" />
+        <ToastProvider>
+          <GestureHandlerRootView style={styles.container}>
+            <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="login" />
@@ -41,7 +43,8 @@ export default function RootLayout() {
               }}
             />
           </Stack>
-        </GestureHandlerRootView>
+          </GestureHandlerRootView>
+        </ToastProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

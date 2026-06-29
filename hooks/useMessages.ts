@@ -11,6 +11,7 @@ export type ChatMessage = {
   senderName: string;
   senderInitials: string;
   senderGradient: number;
+  senderAvatarId?: string;
   type: 'text' | 'voice' | 'poll' | 'memory';
   text?: string;
   voiceDuration?: string;

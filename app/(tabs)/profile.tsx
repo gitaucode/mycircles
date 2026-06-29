@@ -6,15 +6,15 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  Image,
   Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CURRENT_USER } from '../../data/mockData';
-
-const MAYA_AVATAR = 'https://i.pravatar.cc/150?img=47';
+import { router } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCircles } from '../../hooks/useCircles';
+import { Colors } from '../../constants/colors';
 
 const SETTINGS = [
   {
@@ -62,6 +62,33 @@ const SETTINGS = [
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const tabClearance = 86 + Math.max(insets.bottom, 12);
+  const { user, logout } = useAuth();
+  const { circles } = useCircles();
+  const displayName = user?.name ?? 'Your profile';
+  const username = user?.username ?? '@you';
+  const initials = user?.initials ?? displayName.slice(0, 1).toUpperCase();
+  const bio = user?.bio?.trim() || 'No bio yet';
+  const totalPeople = circles.reduce((acc, circle) => acc + circle.memberCount, 0);
+  const gradient = Colors.avatarGradients[user?.gradientIndex ?? 0] ?? Colors.gradientViolet;
+  const shareLink = `mycircles.app/${username.replace(/^@/, '')}`;
+
+  function handleLogout() {
+    Alert.alert(
+      'Log out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/');
+          },
+        },
+      ],
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -80,7 +107,9 @@ export default function ProfileScreen() {
               <Ionicons name="notifications-outline" size={19} color="#7655F0" />
               <View style={styles.notifDot} />
             </Pressable>
-            <Image source={{ uri: MAYA_AVATAR }} style={styles.headerAvatar} />
+            <LinearGradient colors={gradient as [string, string]} style={styles.headerAvatar}>
+              <Text style={styles.headerAvatarText}>{initials}</Text>
+            </LinearGradient>
           </View>
         </View>
 
@@ -93,16 +122,18 @@ export default function ProfileScreen() {
         >
           {/* Avatar */}
           <View style={styles.avatarWrap}>
-            <Image source={{ uri: MAYA_AVATAR }} style={styles.avatar} />
+            <LinearGradient colors={gradient as [string, string]} style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </LinearGradient>
             <View style={styles.badge}>
               <Ionicons name="sparkles" size={11} color="#fff" />
             </View>
           </View>
 
           {/* Name + username + bio */}
-          <Text style={styles.name}>{CURRENT_USER.name} 🤍</Text>
-          <Text style={styles.username}>{CURRENT_USER.username}</Text>
-          <Text style={styles.bio}>{CURRENT_USER.bio}</Text>
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.username}>{username}</Text>
+          <Text style={styles.bio}>{bio}</Text>
 
           {/* Divider */}
           <View style={styles.dividerRow}>
@@ -115,19 +146,19 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Ionicons name="people-outline" size={18} color="#7655F0" />
-              <Text style={styles.statNum}>6</Text>
+              <Text style={styles.statNum}>{circles.length}</Text>
               <Text style={styles.statLbl}>Circles</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Ionicons name="person-outline" size={18} color="#F4845F" />
-              <Text style={styles.statNum}>42</Text>
+              <Text style={styles.statNum}>{totalPeople}</Text>
               <Text style={styles.statLbl}>People</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Ionicons name="images-outline" size={18} color="#22B5CC" />
-              <Text style={styles.statNum}>18</Text>
+              <Text style={styles.statNum}>0</Text>
               <Text style={styles.statLbl}>Memories</Text>
             </View>
           </View>
@@ -136,18 +167,35 @@ export default function ProfileScreen() {
         {/* ── Action buttons ── */}
         <View style={styles.actionsRow}>
           <Pressable
-            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.82 }]}
-            onPress={() => Share.share({ message: 'Join my circles! mycircles.app/maya' })}
+            style={({ pressed }) =>
+              [styles.actionBtn, pressed && { opacity: 0.82 }]
+            }
+            onPress={() =>
+              Share.share({ message: `Join me on My Circles! ${shareLink}` })
+            }
           >
-            <Ionicons name="share-outline" size={16} color="#7655F0" />
-            <Text style={styles.actionText}>Share Profile Card</Text>
+            <Ionicons name="share-outline" size={15} color="#7655F0" />
+            <Text style={styles.actionText}>Share Card</Text>
           </Pressable>
+
           <Pressable
-            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.82 }]}
+            style={({ pressed }) =>
+              [styles.actionBtn, pressed && { opacity: 0.82 }]
+            }
             onPress={() => Alert.alert('QR Code', 'Coming soon!')}
           >
-            <Ionicons name="qr-code-outline" size={16} color="#7655F0" />
-            <Text style={styles.actionText}>Show QR Code</Text>
+            <Ionicons name="qr-code-outline" size={15} color="#7655F0" />
+            <Text style={styles.actionText}>Show QR</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) =>
+              [styles.actionBtn, pressed && { opacity: 0.82 }]
+            }
+            onPress={() => Alert.alert('Link copied', shareLink)}
+          >
+            <Ionicons name="link-outline" size={15} color="#7655F0" />
+            <Text style={styles.actionText}>Copy Link</Text>
           </Pressable>
         </View>
 
@@ -174,6 +222,15 @@ export default function ProfileScreen() {
             </Pressable>
           ))}
         </View>
+
+        {/* ── Log out ── */}
+        <Pressable
+          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.75 }]}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          <Text style={styles.logoutText}>Log out</Text>
+        </Pressable>
 
         <Text style={styles.version}>My Circles v1.0.0</Text>
       </ScrollView>
@@ -228,9 +285,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#7655F0',
-    backgroundColor: '#C4B5FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   // Card
@@ -255,9 +316,13 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    borderWidth: 3,
-    borderColor: '#7655F0',
-    backgroundColor: '#C4B5FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '900',
   },
   badge: {
     position: 'absolute',
@@ -331,14 +396,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: 16,
     marginTop: 14,
-    gap: 10,
+    gap: 8,
   },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 5,
     backgroundColor: '#fff',
     borderRadius: 14,
     paddingVertical: 13,
@@ -351,7 +416,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   actionText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: '#7655F0',
   },
@@ -401,11 +466,31 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
+
   version: {
     textAlign: 'center',
     fontSize: 11,
     color: '#C4B5FD',
     fontWeight: '500',
     marginBottom: 8,
+  },
+
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#EF4444',
   },
 });

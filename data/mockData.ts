@@ -22,6 +22,21 @@ export type Circle = {
   lastMessageTime?: string;
   unreadCount?: number;
   gradientIndex: number;
+  upcomingEvent?: string;     // short label shown on the card, e.g. "Beach Hangout Sat"
+  memoryHighlight?: string;  // short memory label shown when no event
+  inviteToken?: string;      // invite link token from the server
+};
+
+
+export type TimeCapsule = {
+  id: string;
+  circleId: string;
+  circleName: string;
+  circleEmoji: string;
+  senderName: string;
+  openDate: string;
+  daysUntilOpen: number;
+  type: 'message' | 'photo' | 'video';
 };
 
 export type Message = {
@@ -108,6 +123,8 @@ export const CIRCLES: Circle[] = [
     lastMessageTime: '2m ago',
     unreadCount: 3,
     gradientIndex: 0,
+    upcomingEvent: 'Beach Hangout · Sat',
+    memoryHighlight: '1 yr ago: Diani trip 🌊',
   },
   {
     id: 'c2',
@@ -122,6 +139,7 @@ export const CIRCLES: Circle[] = [
     lastMessageTime: '15m ago',
     unreadCount: 5,
     gradientIndex: 1,
+    upcomingEvent: 'Movie Night · Fri',
   },
   {
     id: 'c3',
@@ -136,6 +154,8 @@ export const CIRCLES: Circle[] = [
     lastMessageTime: '1h ago',
     unreadCount: 2,
     gradientIndex: 2,
+    upcomingEvent: "Wanja's Birthday · Sun",
+    memoryHighlight: '5 yrs of family lunches 💚',
   },
   {
     id: 'c4',
@@ -150,6 +170,7 @@ export const CIRCLES: Circle[] = [
     lastMessageTime: '3h ago',
     unreadCount: 1,
     gradientIndex: 3,
+    memoryHighlight: 'First collab: 2 yrs ago ✨',
   },
   {
     id: 'c5',
@@ -178,6 +199,22 @@ export const CIRCLES: Circle[] = [
     lastMessageTime: '2h ago',
     unreadCount: 0,
     gradientIndex: 5,
+    memoryHighlight: 'Karura hike · last month 🌿',
+  },
+];
+
+// ─── Time Capsules ────────────────────────────────────────────────────────────
+
+export const TIME_CAPSULES: TimeCapsule[] = [
+  {
+    id: 'tc1',
+    circleId: 'c1',
+    circleName: 'Besties',
+    circleEmoji: '❤️',
+    senderName: 'Amani',
+    openDate: 'Jun 26, 2026',
+    daysUntilOpen: 3,
+    type: 'message',
   },
 ];
 

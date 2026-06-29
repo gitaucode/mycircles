@@ -32,6 +32,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+.dev.vars
+
+# Cloudflare local state
+.wrangler/
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +43,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local dev files
+*.log
+phone-screen.png

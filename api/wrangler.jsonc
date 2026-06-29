@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "my-circles-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-29",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "my-circles-db",
+      "database_id": "bdf51eae-f08b-4211-98db-b2a04ff4ca44"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "my-circles-media"
+    }
+  ],
+  // Local-only dev vars. For production use: wrangler secret put JWT_SECRET
+  "vars": {
+    "JWT_SECRET": "dev-secret-change-me-in-production"
+  }
+}

@@ -10,6 +10,7 @@ type Props = {
   style?: ViewStyle;
   outline?: boolean;
   ghost?: boolean;
+  black?: boolean;
   loading?: boolean;
   disabled?: boolean;
   small?: boolean;
@@ -21,6 +22,7 @@ export default function PrimaryButton({
   style,
   outline = false,
   ghost = false,
+  black = false,
   loading = false,
   disabled = false,
   small = false,
@@ -55,6 +57,27 @@ export default function PrimaryButton({
         ]}
       >
         <Text style={[styles.outlineLabel, small && styles.smallLabel]}>{label}</Text>
+      </Pressable>
+    );
+  }
+
+  if (black) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={({ pressed }) => [
+          styles.blackBtn,
+          small && styles.small,
+          pressed && styles.pressed,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={Colors.white} />
+        ) : (
+          <Text style={[styles.blackLabel, small && styles.smallLabel]}>{label}</Text>
+        )}
       </Pressable>
     );
   }
@@ -132,6 +155,25 @@ const styles = StyleSheet.create({
     color: Colors.violet,
     fontSize: Typography.md,
     fontWeight: Typography.semibold,
+  },
+  blackBtn: {
+    borderRadius: 100,
+    paddingVertical: 18,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#111827',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  blackLabel: {
+    color: Colors.white,
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    letterSpacing: 0.3,
   },
   small: {
     paddingVertical: 10,

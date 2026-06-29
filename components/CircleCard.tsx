@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
-import AvatarStack from './AvatarStack';
 import { Circle } from '../data/mockData';
+import AvatarStack from './AvatarStack';
 
 type Props = {
   circle: Circle;
   onPress?: () => void;
+  onLongPress?: () => void;
 };
 
 const CARD_GRADIENTS: [string, string][] = [
@@ -20,13 +21,31 @@ const CARD_GRADIENTS: [string, string][] = [
   ['#D4A028', '#E8C060'], // warm amber → gold
 ];
 
-export default function CircleCard({ circle, onPress }: Props) {
+export default function CircleCard({ circle, onPress, onLongPress }: Props) {
   const gradColors = CARD_GRADIENTS[circle.gradientIndex % CARD_GRADIENTS.length];
+
+
+  // Show up to 3 avatar indices from memberIds (parsed as numbers for AvatarStack)
+  const avatarIndices = circle.memberIds.slice(0, 3).map((_, i) => i);
+
+  // Determine what to show in the bottom slot (priority: event > last message > memory > vibe)
+  const bottomContent = circle.upcomingEvent
+    ? { type: 'event' as const, text: `📅 ${circle.upcomingEvent}` }
+    : circle.lastMessage
+    ? { type: 'message' as const, text: circle.lastMessage }
+    : circle.memoryHighlight
+    ? { type: 'memory' as const, text: `✨ ${circle.memoryHighlight}` }
+    : { type: 'vibe' as const, text: circle.vibe };
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.wrapper, pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] }]}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      style={({ pressed }) => [
+        styles.wrapper,
+        pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+      ]}
     >
       <LinearGradient
         colors={gradColors}
@@ -34,21 +53,48 @@ export default function CircleCard({ circle, onPress }: Props) {
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
-        {/* Emoji — big, expressive, top-left */}
+        {/* ── Top: emoji (left) + avatars + unread badge (right) ─ */}
         <View style={styles.header}>
           <Text style={styles.emoji}>{circle.emoji}</Text>
-          <AvatarStack users={[0, 1, 2]} size={22} />
-        </View>
 
-        <View style={styles.content}>
-          <Text style={styles.name} numberOfLines={1}>{circle.name}</Text>
-          <Text style={styles.members}>{circle.memberCount} members</Text>
-        </View>
-
-        <View style={styles.footer}>
-          <View style={styles.vibePill}>
-            <Text style={[styles.vibeText, { color: gradColors[0] }]} numberOfLines={1}>{circle.vibe}</Text>
+          <View style={styles.topRight}>
+            <AvatarStack users={avatarIndices} size={22} />
           </View>
+        </View>
+
+        {/* ── Middle: name + member count ───────────── */}
+        <View style={styles.content}>
+          <Text style={styles.name} numberOfLines={1}>
+            {circle.name}
+          </Text>
+          <Text style={styles.members}>
+            {circle.memberCount} members
+          </Text>
+        </View>
+
+        {/* ── Bottom: event pill / message / vibe ───── */}
+        <View style={styles.footer}>
+          {bottomContent.type === 'vibe' ? (
+            <View style={styles.vibePill}>
+              <Text
+                style={[styles.bottomPillText, { color: gradColors[0] }]}
+                numberOfLines={1}
+              >
+                {bottomContent.text}
+              </Text>
+            </View>
+          ) : bottomContent.type === 'message' ? (
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {bottomContent.text}
+            </Text>
+          ) : (
+            /* event or memory pill */
+            <View style={styles.eventPill}>
+              <Text style={styles.eventPillText} numberOfLines={1}>
+                {bottomContent.text}
+              </Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
     </Pressable>
@@ -64,9 +110,11 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 16,
-    height: 180,
+    height: 200,
     justifyContent: 'space-between',
   },
+
+  // Top
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -76,21 +124,34 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 40,
   },
+  topRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+
+
+  // Middle
   content: {
     marginTop: 'auto',
-    marginBottom: 12,
+    marginBottom: 10,
+    gap: 2,
   },
   name: {
     color: Colors.white,
     fontSize: 17,
     fontWeight: Typography.bold,
-    marginBottom: 3,
+    lineHeight: 21,
+    textShadowColor: 'rgba(0,0,0,0.12)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   members: {
-    color: 'rgba(255,255,255,0.88)',
+    color: 'rgba(255,255,255,0.82)',
     fontSize: Typography.xs,
     fontWeight: Typography.medium,
   },
+
+  // Bottom
   footer: {
     flexDirection: 'row',
   },
@@ -99,9 +160,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
+    maxWidth: '100%',
   },
-  vibeText: {
+  eventPill: {
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 100,
+    maxWidth: '100%',
+  },
+  bottomPillText: {
     fontSize: 11,
     fontWeight: Typography.bold,
+  },
+  eventPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2A1F5E',
+  },
+  lastMessage: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.80)',
+    flex: 1,
   },
 });

@@ -3,10 +3,66 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { AuthUser, getMe, loginUser, registerUser, updateMe } from '../data/api';
 import { getAuthToken, removeAuthToken, setAuthToken } from '../data/authStorage';
 
-// Push notifications require a development/production build (not Expo Go SDK 53+).
-// Token sync is stubbed here — re-enable with expo-notifications when building a dev build.
+import { Platform } from 'react-native';
+
 async function registerForPushNotificationsAsync(): Promise<string | null> {
-  return null;
+  let Notifications: any = null;
+  let Device: any = null;
+  let Constants: any = null;
+  
+  try {
+    Notifications = require('expo-notifications');
+    Device = require('expo-device');
+    Constants = require('expo-constants').default;
+  } catch (e) {
+    console.warn('Push notifications not supported in this environment');
+    return null;
+  }
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  if (!Device.isDevice) {
+    console.warn('Must use physical device for Push Notifications');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    console.warn('Failed to get push token for push notification!');
+    return null;
+  }
+  
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+  
+  if (!projectId) {
+    console.warn('Project ID not found');
+    return null;
+  }
+
+  try {
+    const pushTokenString = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })
+    ).data;
+    return pushTokenString;
+  } catch (e: unknown) {
+    console.warn(e);
+    return null;
+  }
 }
 
 type AuthContextValue = {
@@ -55,6 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await loginUser(input);
     await setAuthToken(response.token);
     setUser(response.user);
+
+    const pushToken = await registerForPushNotificationsAsync();
+    if (pushToken) {
+      await updateMe({ pushToken });
+    }
   }, []);
 
   const register = useCallback(async (input: {
@@ -66,6 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await registerUser(input);
     await setAuthToken(response.token);
     setUser(response.user);
+
+    const pushToken = await registerForPushNotificationsAsync();
+    if (pushToken) {
+      await updateMe({ pushToken });
+    }
   }, []);
 
   const logout = useCallback(async () => {

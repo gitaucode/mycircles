@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PrimaryButton from '../../components/PrimaryButton';
@@ -120,8 +121,11 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: Colors.background },
   content: { paddingBottom: 24 },
+  headerGradient: {
+    marginBottom: 0,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: '#E5E7EB',
   },
   sectionHeader: {
@@ -195,6 +199,21 @@ const styles = StyleSheet.create({
   circleList: {
     paddingHorizontal: 16,
     gap: 10,
+  },
+  bellBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   circleRow: {
     flexDirection: 'row',

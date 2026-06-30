@@ -8,9 +8,13 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { USER_AVATARS } from '../constants/assets';
 
 import PrimaryButton from '../components/PrimaryButton';
 import { Colors } from '../constants/colors';
@@ -59,6 +63,13 @@ export default function RegisterScreen() {
   }
 
   return (
+    <LinearGradient
+      colors={['#FDE8F0', '#EFE4FB', '#E4D9F8', '#DDD4F5']}
+      locations={[0, 0.35, 0.65, 1]}
+      start={{ x: 0.3, y: 0 }}
+      end={{ x: 0.7, y: 1 }}
+      style={styles.gradient}
+    >
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -70,6 +81,9 @@ export default function RegisterScreen() {
           contentContainerStyle={styles.content}
         >
           <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Image source={USER_AVATARS.avatar_2} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+            </View>
             <Text style={styles.eyebrow}>Start private</Text>
             <Text style={styles.title}>Create your account</Text>
             <Text style={styles.subtitle}>Your profile will be ready for circles and invites.</Text>
@@ -151,13 +165,17 @@ export default function RegisterScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
   },
   flex: {
     flex: 1,
@@ -171,6 +189,23 @@ const styles = StyleSheet.create({
   header: {
     gap: 8,
     alignItems: 'center',
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E5E7EB',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
   eyebrow: {
     color: '#6B7280',
@@ -209,7 +244,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 54,
     borderRadius: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     color: Colors.navy,
     fontSize: Typography.base,

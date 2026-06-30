@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 
 import { AuthProvider } from '../contexts/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ToastProvider } from './providers/ToastProvider';
+import { ToastProvider } from '../providers/ToastProvider';
 
 export default function RootLayout() {
   return (
@@ -42,6 +42,20 @@ export default function RootLayout() {
                 animation: 'slide_from_bottom',
               }}
             />
+            <Stack.Screen
+              name="modal/edit-profile"
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="modal/edit-avatar"
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
           </Stack>
           </GestureHandlerRootView>
         </ToastProvider>
@@ -53,3 +67,4 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 });
+

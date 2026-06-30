@@ -1,55 +1,181 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import { USER_AVATARS } from '../../constants/assets';
+import { useToast } from '../../providers/ToastProvider';
 
-const AVATAR_OPTIONS = Object.keys(USER_AVATARS);
+const AVATAR_OPTIONS = Object.keys(USER_AVATARS) as (keyof typeof USER_AVATARS)[];
 
 export default function EditAvatarModal() {
-  const { user } = useAuth();
-  const [selected, setSelected] = useState(user?.avatarId || AVATAR_OPTIONS[0]);
+  const { user, updateUser } = useAuth();
+  const toast = useToast();
 
-  const handleSave = () => {
-    // Ideally we would save this to the backend using an API call.
-    // For now we will just pop the modal. Since mockData is static,
-    // the user might not see it persist unless we update the context.
-    // To make it simple, we just pretend it saves for the UI demo.
-    // user.avatarId = selected; (if we had a setter)
-    router.back();
-  };
+  const [selected, setSelected] = useState<string>(user?.avatarId || AVATAR_OPTIONS[0]);
+  // Custom photo URI — if set, this takes priority over the preset avatar
+  const [customUri, setCustomUri] = useState<string | null>(user?.photoUri ?? null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // ── Photo picker ────────────────────────────────────────────────────────────
+  async function handlePickPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      toast.show('Permission needed to access your photos.', 'error');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setCustomUri(result.assets[0].uri);
+      // Clear preset selection when custom photo is picked
+      setSelected('');
+    }
+  }
+
+  async function handleTakePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      toast.show('Permission needed to use your camera.', 'error');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setCustomUri(result.assets[0].uri);
+      setSelected('');
+    }
+  }
+
+  // Selecting a preset clears any custom photo
+  function handleSelectPreset(id: string) {
+    setSelected(id);
+    setCustomUri(null);
+  }
+
+  // ── Save ────────────────────────────────────────────────────────────────────
+  async function handleSave() {
+    setIsSaving(true);
+    try {
+      await updateUser({
+        avatarId: customUri ? undefined : selected,
+        photoUri: customUri ?? null,
+      });
+      toast.show('Avatar updated!', 'success');
+      router.back();
+    } catch {
+      toast.show('Could not save avatar. Try again.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // ── Preview source ──────────────────────────────────────────────────────────
+  const previewSource = customUri
+    ? { uri: customUri }
+    : USER_AVATARS[selected as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1'];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8} style={styles.closeBtn}>
           <Ionicons name="close" size={20} color="#374151" />
         </Pressable>
-        <Text style={styles.headerTitle}>Choose Avatar</Text>
-        <Pressable onPress={handleSave} hitSlop={8}>
-          <Text style={styles.saveText}>Save</Text>
+        <Text style={styles.headerTitle}>Edit Photo</Text>
+        <Pressable
+          onPress={handleSave}
+          disabled={isSaving}
+          hitSlop={8}
+          style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveBtnText}>Save</Text>
+          )}
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+
+        {/* ── Preview ── */}
         <View style={styles.previewContainer}>
-          <Image source={USER_AVATARS[selected as keyof typeof USER_AVATARS]} style={styles.previewAvatar} />
+          <Image source={previewSource} style={styles.previewAvatar} />
+          {customUri && (
+            <Pressable
+              style={styles.removeCustomBtn}
+              onPress={() => {
+                setCustomUri(null);
+                setSelected(user?.avatarId || AVATAR_OPTIONS[0]);
+              }}
+            >
+              <Ionicons name="close-circle" size={22} color="#EF4444" />
+            </Pressable>
+          )}
         </View>
 
-        <Text style={styles.sectionTitle}>Available Avatars</Text>
-        
+        {/* ── Upload options ── */}
+        <View style={styles.uploadRow}>
+          <Pressable
+            style={({ pressed }) => [styles.uploadBtn, pressed && { opacity: 0.8 }]}
+            onPress={handlePickPhoto}
+          >
+            <Ionicons name="images-outline" size={18} color="#111827" />
+            <Text style={styles.uploadBtnText}>Choose Photo</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.uploadBtn, pressed && { opacity: 0.8 }]}
+            onPress={handleTakePhoto}
+          >
+            <Ionicons name="camera-outline" size={18} color="#111827" />
+            <Text style={styles.uploadBtnText}>Take Photo</Text>
+          </Pressable>
+        </View>
+
+        {/* ── Divider ── */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or choose an avatar</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* ── Avatar grid ── */}
         <View style={styles.grid}>
-          {AVATAR_OPTIONS.map(id => {
-            const active = id === selected;
+          {AVATAR_OPTIONS.map((id) => {
+            const active = id === selected && !customUri;
             return (
               <Pressable
                 key={id}
-                onPress={() => setSelected(id)}
+                onPress={() => handleSelectPreset(id)}
                 style={[styles.gridItem, active && styles.gridItemActive]}
               >
-                <Image source={USER_AVATARS[id as keyof typeof USER_AVATARS]} style={styles.gridAvatar} />
+                <Image
+                  source={USER_AVATARS[id]}
+                  style={[styles.gridAvatar, active && styles.gridAvatarActive]}
+                />
                 {active && (
                   <View style={styles.activeCheck}>
                     <Ionicons name="checkmark" size={14} color="#FFFFFF" />
@@ -69,6 +195,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -93,40 +221,104 @@ const styles = StyleSheet.create({
     color: '#111827',
     letterSpacing: -0.2,
   },
-  saveText: {
-    color: '#111827',
-    fontSize: 16,
+  saveBtn: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 10,
+    minWidth: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
+
   body: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
+
+  // Preview
   previewContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
     marginTop: 20,
+    position: 'relative',
+    alignSelf: 'center',
   },
   previewAvatar: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     borderWidth: 4,
     borderColor: '#FFFFFF',
     backgroundColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
   },
-  sectionTitle: {
-    fontSize: 15,
+  removeCustomBtn: {
+    position: 'absolute',
+    top: 0,
+    right: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+  },
+
+  // Upload buttons
+  uploadRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  uploadBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  uploadBtnText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 16,
+  },
+
+  // Divider
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+
+  // Avatar grid
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -134,9 +326,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gridItem: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 3,
     borderColor: 'transparent',
     alignItems: 'center',
@@ -147,10 +339,13 @@ const styles = StyleSheet.create({
     borderColor: '#111827',
   },
   gridAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
     backgroundColor: '#E5E7EB',
+  },
+  gridAvatarActive: {
+    opacity: 1,
   },
   activeCheck: {
     position: 'absolute',
@@ -166,3 +361,4 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
 });
+

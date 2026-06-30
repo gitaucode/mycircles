@@ -17,9 +17,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import { useCircles } from '../../../hooks/useCircles';
-import { addCircleMember, AuthUser, createPlan, getCircleDetails, getCirclePlans, Plan, rsvpPlan, searchUsers } from '../../../data/api';
+import { addCircleMember, AuthUser, createPlan, getCircleDetails, getCirclePlans, Plan, rsvpPlan, searchUsers, getPlanRsvps, PlanRsvp } from '../../../data/api';
 import { CIRCLE_ICONS, USER_AVATARS } from '../../../constants/assets';
-import { useToast } from '../../providers/ToastProvider';
+import { useToast } from '../../../providers/ToastProvider';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const TABS = ['Plans', 'People'];
 
@@ -43,6 +44,8 @@ export default function CircleDetailScreen() {
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [planRsvps, setPlanRsvps] = useState<Record<string, PlanRsvp[]>>({});
+  const { user } = useAuth();
 
   const circle = circles.find((c) => c.id === id);
 
@@ -50,7 +53,18 @@ export default function CircleDetailScreen() {
     if (!id) return;
     setPlansLoading(true);
     getCirclePlans(id)
-      .then(setPlans)
+      .then(async (fetchedPlans) => {
+        setPlans(fetchedPlans);
+        const rsvpsDict: Record<string, PlanRsvp[]> = {};
+        for (const p of fetchedPlans) {
+          try {
+            rsvpsDict[p.id] = await getPlanRsvps(p.id);
+          } catch (e) {
+            // Ignore error fetching individual plan rsvp
+          }
+        }
+        setPlanRsvps(rsvpsDict);
+      })
       .catch(() => setPlans([]))
       .finally(() => setPlansLoading(false));
   }, [id]);
@@ -306,36 +320,60 @@ export default function CircleDetailScreen() {
                 </Pressable>
               </View>
             ) : (
-              plans.map((plan) => (
-                <View key={plan.id} style={styles.planCard}>
-                  <View style={styles.planIconBox}>
-                    <Ionicons name="calendar" size={20} color={Colors.violet} />
-                  </View>
-                  <View style={styles.planInfo}>
-                    <Text style={styles.planTitle}>{plan.title}</Text>
-                    <Text style={styles.planMeta}>
-                      {plan.date}{plan.time ? ` · ${plan.time}` : ''}
-                      {plan.location ? `\n📍 ${plan.location}` : ''}
-                    </Text>
-                    <View style={styles.rsvpRow}>
-                      <Pressable
-                        style={styles.rsvpInBtn}
-                        onPress={() => handleRsvp(plan.id, 'in')}
-                        disabled={rsvpingPlanId === plan.id}
-                      >
-                        <Text style={styles.rsvpInText}>I'm in</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.rsvpOutBtn}
-                        onPress={() => handleRsvp(plan.id, 'out')}
-                        disabled={rsvpingPlanId === plan.id}
-                      >
-                        <Text style={styles.rsvpOutText}>Can't make it</Text>
-                      </Pressable>
+              plans.map((plan) => {
+                const rsvps = planRsvps[plan.id] || [];
+                const inRsvps = rsvps.filter((r) => r.status === 'in');
+                const myRsvp = user ? rsvps.find(r => r.user_id === user.id)?.status : null;
+                return (
+                  <View key={plan.id} style={styles.planCard}>
+                    <View style={styles.planIconBox}>
+                      <Ionicons name="calendar" size={20} color={Colors.violet} />
+                    </View>
+                    <View style={styles.planInfo}>
+                      <Text style={styles.planTitle}>{plan.title}</Text>
+                      <Text style={styles.planMeta}>
+                        {plan.date}{plan.time ? ` · ${plan.time}` : ''}
+                        {plan.location ? `\n📍 ${plan.location}` : ''}
+                      </Text>
+                      
+                      {inRsvps.length > 0 && (
+                        <View style={styles.rsvpAvatarsRow}>
+                          {inRsvps.slice(0, 5).map((r, i) => (
+                            <View key={r.user_id} style={[styles.rsvpAvatarWrap, { marginLeft: i > 0 ? -10 : 0 }]}>
+                              <Image 
+                                source={USER_AVATARS[`avatar_${r.gradient_index + 1}` as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
+                                style={styles.rsvpAvatar} 
+                              />
+                            </View>
+                          ))}
+                          {inRsvps.length > 5 && (
+                            <View style={[styles.rsvpAvatarWrap, styles.rsvpAvatarMoreWrap, { marginLeft: -10 }]}>
+                              <Text style={styles.rsvpAvatarMore}>+{inRsvps.length - 5}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                      <View style={styles.rsvpRow}>
+                        <Pressable
+                          style={[styles.rsvpInBtn, myRsvp === 'in' && styles.rsvpBtnActive]}
+                          onPress={() => handleRsvp(plan.id, 'in')}
+                          disabled={rsvpingPlanId === plan.id}
+                        >
+                          <Text style={[styles.rsvpInText, myRsvp === 'in' && styles.rsvpTextActive]}>I'm in</Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.rsvpOutBtn, myRsvp === 'out' && styles.rsvpBtnActive]}
+                          onPress={() => handleRsvp(plan.id, 'out')}
+                          disabled={rsvpingPlanId === plan.id}
+                        >
+                          <Text style={[styles.rsvpOutText, myRsvp === 'out' && styles.rsvpTextActive]}>Can't make it</Text>
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
         )}
@@ -765,5 +803,40 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 13,
     fontWeight: '700',
+  },
+  rsvpAvatarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  rsvpAvatarWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  rsvpAvatarMoreWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.navy,
+  },
+  rsvpAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  rsvpAvatarMore: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  rsvpBtnActive: {
+    backgroundColor: Colors.navy,
+    borderColor: Colors.navy,
+  },
+  rsvpTextActive: {
+    color: Colors.white,
   },
 });

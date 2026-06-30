@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { createCircle } from '../../data/api';
 import { CIRCLE_ICONS } from '../../constants/assets';
-import { useToast } from '../providers/ToastProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -118,11 +118,11 @@ export default function CreateCircleModal() {
 
         <View style={styles.successBody}>
           <View style={styles.successIconPremium}>
-            <Ionicons name="checkmark-outline" size={42} color="#7655F0" />
+            <Ionicons name="checkmark-outline" size={42} color="#111827" />
           </View>
           <Text style={styles.successTitle}>{createdCircle.name} is live</Text>
           <Text style={styles.successText}>Preparing your new space...</Text>
-          <ActivityIndicator color="#7655F0" style={styles.successSpinner} />
+          <ActivityIndicator color="#111827" style={styles.successSpinner} />
         </View>
       </SafeAreaView>
     );
@@ -190,7 +190,7 @@ export default function CreateCircleModal() {
                   <Ionicons
                     name={t.icon}
                     size={16}
-                    color={active ? '#7655F0' : '#6B7280'}
+                    color={active ? '#FFFFFF' : '#6B7280'}
                   />
                   <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>
                     {t.label}
@@ -229,7 +229,7 @@ export default function CreateCircleModal() {
                     <Ionicons
                       name={p.icon}
                       size={18}
-                      color={active ? '#7655F0' : '#9CA3AF'}
+                      color={active ? '#FFFFFF' : '#6B7280'}
                     />
                   </View>
                   <View style={styles.privacyText}>
@@ -238,8 +238,10 @@ export default function CreateCircleModal() {
                     </Text>
                     <Text style={styles.privacyDesc}>{p.desc}</Text>
                   </View>
-                  {active && (
-                    <Ionicons name="checkmark-circle" size={20} color="#7655F0" />
+                  {active ? (
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="ellipse-outline" size={20} color="#D1D5DB" />
                   )}
                 </Pressable>
               );
@@ -314,15 +316,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 4,
@@ -331,7 +326,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -367,15 +362,8 @@ const styles = StyleSheet.create({
 
   // Custom type input
   customTypeInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -398,13 +386,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 100,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   typeChipActive: {
-    borderColor: '#7655F0',
-    backgroundColor: 'rgba(118, 85, 240, 0.07)',
+    backgroundColor: '#111827',
+    borderColor: '#111827',
   },
   typeChipText: {
     fontSize: 13,
@@ -412,7 +400,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   typeChipTextActive: {
-    color: '#7655F0',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 
@@ -427,29 +415,24 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   privacyRowActive: {
-    borderColor: '#7655F0',
-    backgroundColor: 'rgba(118, 85, 240, 0.05)',
+    backgroundColor: '#111827',
+    borderColor: '#111827',
   },
   privacyIconBox: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   privacyIconBoxActive: {
-    backgroundColor: 'rgba(118, 85, 240, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   privacyText: {
     flex: 1,
@@ -461,7 +444,7 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   privacyLabelActive: {
-    color: '#7655F0',
+    color: '#FFFFFF',
   },
   privacyDesc: {
     fontSize: 12,
@@ -556,3 +539,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

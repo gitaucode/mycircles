@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { joinByInvite } from '../../data/api';
-import { useToast } from '../providers/ToastProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 export default function JoinCircleModal() {
   const [token, setToken] = useState('');
@@ -206,3 +206,4 @@ const styles = StyleSheet.create({
   joinBtnDisabled: { opacity: 0.45 },
   joinBtnText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
 });
+

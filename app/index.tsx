@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import PrimaryButton from '../components/PrimaryButton';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,6 +34,13 @@ export default function SplashScreen() {
   }, [isAuthenticated, isLoading]);
 
   return (
+    <LinearGradient
+      colors={['#FDE8F0', '#EFE4FB', '#E4D9F8', '#DDD4F5']}
+      locations={[0, 0.35, 0.65, 1]}
+      start={{ x: 0.3, y: 0 }}
+      end={{ x: 0.7, y: 1 }}
+      style={styles.gradient}
+    >
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <View style={styles.hero}>
@@ -58,16 +66,16 @@ export default function SplashScreen() {
         </View>
 
         <View style={styles.textSection}>
-          <Text style={styles.headline}>Inspired circles</Text>
+          <Text style={styles.headline}>Welcome to My Circles</Text>
           <Text style={styles.supporting}>
-            Connect with the people who matter most in your dedicated, private spaces.
+            A private space for your closest friends and communities.
           </Text>
         </View>
 
         <View style={styles.ctas}>
           <PrimaryButton 
             black 
-            label="Create Your Circle" 
+            label="Get Started" 
             onPress={() => router.push('/register')} 
             disabled={isLoading}
           />
@@ -76,18 +84,22 @@ export default function SplashScreen() {
             style={styles.tertiaryBtn}
             disabled={isLoading}
           >
-            <Text style={styles.tertiaryBtnText}>I already have an invite</Text>
+            <Text style={styles.tertiaryBtnText}>Log in</Text>
           </Pressable>
         </View>
       </View>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,
@@ -111,12 +123,11 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    shadowColor: '#9B80F5',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 2,
+    shadowOpacity: 0.25,
+    shadowRadius: 40,
   },
   centerAvatarContainer: {
     width: 120,

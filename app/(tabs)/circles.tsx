@@ -39,17 +39,22 @@ function CirclesHeader({
   userInitials,
   userGradientIndex,
   userAvatarId,
+  userPhotoUri,
 }: {
   circles: Circle[];
   userName: string;
   userInitials: string;
   userGradientIndex: number;
   userAvatarId?: string;
+  userPhotoUri?: string | null;
 }) {
   const { label: greetLabel, icon: greetIcon } = getTimeGreeting();
   const totalPeople = circles.reduce((acc, c) => acc + c.memberCount, 0);
   const firstName = userName.trim().split(' ')[0] || 'friend';
   const avatarGradient = Colors.avatarGradients[userGradientIndex] ?? Colors.gradientViolet;
+  const avatarSource = userPhotoUri
+    ? { uri: userPhotoUri }
+    : USER_AVATARS[userAvatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1'];
 
   return (
     <View style={styles.hero}>
@@ -66,9 +71,9 @@ function CirclesHeader({
       {/* Centered Greeting Block */}
       <View style={styles.greetingBlock}>
         <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.heroAvatarWrapper}>
-          <Image 
-            source={USER_AVATARS[userAvatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
-            style={styles.heroAvatar} 
+          <Image
+            source={avatarSource}
+            style={styles.heroAvatar}
           />
           <View style={styles.onlineDotHero} />
         </Pressable>
@@ -131,6 +136,7 @@ export default function CirclesScreen() {
               userInitials={user?.initials ?? '?'}
               userGradientIndex={user?.gradientIndex ?? 0}
               userAvatarId={user?.avatarId}
+              userPhotoUri={user?.photoUri}
             />
 
 
@@ -176,10 +182,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
   list: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
   itemWrapper: {
     flex: 1,
@@ -193,6 +199,9 @@ const styles = StyleSheet.create({
   },
 
 
+  heroGradient: {
+    marginBottom: 0,
+  },
   hero: {
     paddingTop: 6,
     paddingBottom: 32,
@@ -297,13 +306,13 @@ const styles = StyleSheet.create({
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,

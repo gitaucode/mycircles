@@ -1,188 +1,396 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { createCircle } from '../data/api';
+import { USER_AVATARS, CIRCLE_ICONS } from '../constants/assets';
 import PrimaryButton from '../components/PrimaryButton';
-import { Colors } from '../constants/colors';
+import { useToast } from '../providers/ToastProvider';
 
-const centerAvatar = require('../assets/images/avatar_1.png');
-const avatarA = require('../assets/images/avatar_2.png');
-const avatarB = require('../assets/images/avatar_3.png');
-const avatarC = require('../assets/images/avatar_1.png');
-const avatarD = require('../assets/images/avatar_2.png');
-const avatarE = require('../assets/images/avatar_3.png');
-const avatarF = require('../assets/images/avatar_1.png');
-const avatarG = require('../assets/images/avatar_2.png');
-const avatarH = require('../assets/images/avatar_3.png');
+const AVATAR_OPTIONS = Object.keys(USER_AVATARS) as (keyof typeof USER_AVATARS)[];
+const ICON_OPTIONS = Object.keys(CIRCLE_ICONS);
+
+const CIRCLE_TYPES = [
+  { label: 'Friends',  icon: 'people-outline' as any },
+  { label: 'Family',   icon: 'home-outline' as any },
+  { label: 'Campus',   icon: 'school-outline' as any },
+  { label: 'Creators', icon: 'sparkles-outline' as any },
+  { label: 'Work',     icon: 'briefcase-outline' as any },
+];
 
 export default function OnboardingScreen() {
-  const enterApp = () => {
+  const { user, updateUser } = useAuth();
+  const { show: showToast } = useToast();
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Step 1 state
+  const [avatarId, setAvatarId] = useState<string>(user?.avatarId || 'avatar_1');
+
+  // Step 2 state
+  const [circleName, setCircleName] = useState('');
+  const [circleType, setCircleType] = useState('Friends');
+  const [circleIconId, setCircleIconId] = useState(ICON_OPTIONS[0]);
+
+  // Step 3 state
+  const [createdCircleName, setCreatedCircleName] = useState('');
+
+  const handleSaveAvatar = async () => {
+    setIsSubmitting(true);
+    try {
+      await updateUser({ avatarId });
+      setStep(2);
+    } catch (e) {
+      showToast('Failed to save avatar', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateCircle = async () => {
+    if (!circleName.trim()) {
+      showToast('Please enter a circle name', 'error');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await createCircle({
+        name: circleName.trim(),
+        type: circleType,
+        isPublic: false,
+        iconId: circleIconId,
+      });
+      setCreatedCircleName(circleName.trim());
+      setStep(3);
+    } catch (e) {
+      showToast('Could not create circle', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const finishOnboarding = () => {
     router.replace('/(tabs)/circles');
   };
 
   return (
+    <LinearGradient
+      colors={['#FDE8F0', '#EFE4FB', '#E4D9F8', '#DDD4F5']}
+      locations={[0, 0.35, 0.65, 1]}
+      start={{ x: 0.3, y: 0 }}
+      end={{ x: 0.7, y: 1 }}
+      style={styles.gradient}
+    >
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.hero}>
-          <View style={styles.orbitContainer}>
-            {/* Background glowing circle */}
-            <View style={styles.centerGlow} />
-            
-            {/* Orbiting Avatars */}
-            <Image source={avatarA} style={[styles.orbitAvatar, styles.pos1]} />
-            <Image source={avatarB} style={[styles.orbitAvatar, styles.pos2]} />
-            <Image source={avatarC} style={[styles.orbitAvatar, styles.pos3, { transform: [{ scaleX: -1 }] }]} />
-            <Image source={avatarD} style={[styles.orbitAvatar, styles.pos4, { transform: [{ scaleX: -1 }] }]} />
-            <Image source={avatarE} style={[styles.orbitAvatar, styles.pos5]} />
-            <Image source={avatarF} style={[styles.orbitAvatar, styles.pos6]} />
-            <Image source={avatarG} style={[styles.orbitAvatar, styles.pos7]} />
-            <Image source={avatarH} style={[styles.orbitAvatar, styles.pos8, { transform: [{ scaleX: -1 }] }]} />
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          
+          {step === 1 && (
+            <View style={styles.stepContainer}>
+              <View style={styles.headerArea}>
+                <Text style={styles.title}>Let's put a face to the name</Text>
+                <Text style={styles.subtitle}>Choose an avatar for your profile</Text>
+              </View>
 
-            {/* Center Avatar */}
-            <View style={styles.centerAvatarContainer}>
-              <Image source={centerAvatar} style={styles.centerAvatar} />
+              <View style={styles.grid}>
+                {AVATAR_OPTIONS.map((id) => {
+                  const selected = avatarId === id;
+                  return (
+                    <Pressable
+                      key={id}
+                      onPress={() => setAvatarId(id)}
+                      style={[
+                        styles.avatarWrap,
+                        selected && styles.avatarWrapSelected,
+                      ]}
+                    >
+                      <Image source={USER_AVATARS[id]} style={styles.avatarImage} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View style={{ flex: 1 }} />
+              <PrimaryButton 
+                label={isSubmitting ? "Saving..." : "Continue"} 
+                onPress={handleSaveAvatar} 
+                disabled={isSubmitting} 
+                black
+              />
             </View>
-          </View>
-        </View>
+          )}
 
-        <View style={styles.textSection}>
-          <Text style={styles.headline}>Inspired circles</Text>
-          <Text style={styles.supporting}>
-            Connect with the people who matter most in your dedicated, private spaces.
-          </Text>
-        </View>
+          {step === 2 && (
+            <View style={styles.stepContainer}>
+              <View style={styles.headerArea}>
+                <Text style={styles.title}>Create your first circle</Text>
+                <Text style={styles.subtitle}>Where your people come together</Text>
+              </View>
 
-        <View style={styles.ctas}>
-          <PrimaryButton black label="Create Your Circle" onPress={enterApp} />
-          <Pressable onPress={enterApp} style={styles.tertiaryBtn}>
-            <Text style={styles.tertiaryBtnText}>I already have an invite</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+              <View style={styles.form}>
+                <View style={styles.nameRow}>
+                  <Pressable
+                    style={styles.emojiBtn}
+                    onPress={() => {
+                      const i = ICON_OPTIONS.indexOf(circleIconId);
+                      setCircleIconId(ICON_OPTIONS[(i + 1) % ICON_OPTIONS.length]);
+                    }}
+                  >
+                    <Image source={CIRCLE_ICONS[circleIconId as keyof typeof CIRCLE_ICONS]} style={styles.iconImage} />
+                  </Pressable>
+                  <TextInput
+                    style={styles.nameInput}
+                    value={circleName}
+                    onChangeText={setCircleName}
+                    placeholder="Circle name"
+                    placeholderTextColor="#9CA3AF"
+                    maxLength={40}
+                  />
+                </View>
+                <Text style={styles.hint}>Tap the icon to change it</Text>
+
+                <Text style={styles.sectionLabel}>Type</Text>
+                <View style={styles.typeGrid}>
+                  {CIRCLE_TYPES.map((t) => {
+                    const active = circleType === t.label;
+                    return (
+                      <Pressable
+                        key={t.label}
+                        onPress={() => setCircleType(t.label)}
+                        style={[styles.typeChip, active && styles.typeChipActive]}
+                      >
+                        <Ionicons
+                          name={t.icon}
+                          size={16}
+                          color={active ? '#FFFFFF' : '#6B7280'}
+                        />
+                        <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>
+                          {t.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+              
+              <View style={{ flex: 1 }} />
+              <PrimaryButton 
+                label={isSubmitting ? "Creating..." : "Create Circle"} 
+                onPress={handleCreateCircle} 
+                disabled={isSubmitting || !circleName.trim()} 
+                black
+              />
+            </View>
+          )}
+
+          {step === 3 && (
+            <View style={styles.successContainer}>
+              <View style={styles.successIconPremium}>
+                <Ionicons name="checkmark-outline" size={42} color="#111827" />
+              </View>
+              <Text style={styles.successTitle}>You're all set!</Text>
+              <Text style={styles.successText}>
+                {createdCircleName} has been created.
+              </Text>
+              <View style={{ height: 40 }} />
+              <PrimaryButton 
+                label="Enter My Circles" 
+                onPress={finishOnboarding} 
+                black
+              />
+            </View>
+          )}
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB', // Very light soft background matching the reference
-  },
-  scroll: {
-    flex: 1,
+    backgroundColor: 'transparent',
   },
   content: {
     flexGrow: 1,
-    paddingBottom: 40,
-    justifyContent: 'space-between',
+    padding: 24,
   },
-  hero: {
-    height: 480,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+  stepContainer: {
+    flex: 1,
+  },
+  headerArea: {
     marginTop: 20,
+    marginBottom: 40,
   },
-  orbitContainer: {
-    width: 320,
-    height: 320,
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  
+  // Step 1: Avatar Grid
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'center',
+  },
+  avatarWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 3,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  centerGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  centerAvatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 48,
     overflow: 'hidden',
-    backgroundColor: '#E5E7EB',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 4,
   },
-  centerAvatar: {
+  avatarWrapSelected: {
+    borderColor: '#111827',
+    backgroundColor: '#E5E7EB',
+  },
+  avatarImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  orbitAvatar: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 18,
-    backgroundColor: '#E5E7EB',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  pos1: { top: 10, left: 136 },
-  pos2: { top: 38, right: 48 },
-  pos3: { top: 106, right: 10 },
-  pos4: { bottom: 64, right: 38 },
-  pos5: { bottom: 10, left: 136 },
-  pos6: { bottom: 48, left: 48 },
-  pos7: { top: 140, left: 10 },
-  pos8: { top: 58, left: 40 },
 
-  textSection: {
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  headline: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-    letterSpacing: -1,
-  },
-  supporting: {
-    fontSize: 16,
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  ctas: {
-    paddingHorizontal: 32,
-    gap: 8,
+  // Step 2: Form
+  form: {
     marginBottom: 20,
   },
-  tertiaryBtn: {
-    paddingVertical: 14,
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  emojiBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tertiaryBtnText: {
+  iconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    height: 44,
+    backgroundColor: 'transparent',
+  },
+  hint: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginBottom: 32,
+    paddingLeft: 6,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4B5563',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 100,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  typeChipActive: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  typeChipText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#6B7280',
-    fontSize: 15,
+  },
+  typeChipTextActive: {
+    color: '#FFFFFF',
     fontWeight: '600',
   },
+
+  // Step 3: Success
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successIconPremium: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  successText: {
+    fontSize: 15,
+    color: '#6B7280',
+  },
 });
+

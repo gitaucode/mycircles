@@ -48,6 +48,7 @@ type MessageRow = {
   text: string | null;
   voice_duration: string | null;
   memory_caption: string | null;
+  media_id: string | null;
   created_at: string;
 };
 
@@ -207,6 +208,7 @@ function mapMessage(row: MessageRow) {
     text:          row.text          ?? undefined,
     voiceDuration: row.voice_duration ?? undefined,
     memoryCaption: row.memory_caption ?? undefined,
+    mediaId:       row.media_id      ?? undefined,
     timestamp:     row.created_at,
   };
 }
@@ -323,6 +325,14 @@ async function searchUsers(url: URL, env: Env): Promise<Response> {
     id: u.id, name: u.name, username: u.username,
     initials: u.initials, gradientIndex: u.avatar_gradient_index,
   })));
+}
+
+async function updatePushToken(request: Request, userId: string, env: Env): Promise<Response> {
+  const body = await request.json() as { pushToken?: string };
+  const pushToken = body.pushToken?.trim() || null;
+  
+  await env.DB.prepare('UPDATE users SET push_token = ? WHERE id = ?').bind(pushToken, userId).run();
+  return json({ success: true });
 }
 
 // ─── Circle handlers ──────────────────────────────────────────────────────────
@@ -490,13 +500,13 @@ async function listMessages(circleId: string, userId: string, url: URL, env: Env
   const query = after
     ? `SELECT m.id, m.circle_id, m.sender_id, u.name AS sender_name,
          u.initials AS sender_initials, u.avatar_gradient_index AS sender_gradient,
-         m.type, m.text, m.voice_duration, m.memory_caption, m.created_at
+         m.type, m.text, m.voice_duration, m.memory_caption, m.media_id, m.created_at
        FROM messages m JOIN users u ON u.id = m.sender_id
        WHERE m.circle_id = ? AND m.created_at > ?
        ORDER BY m.created_at ASC LIMIT ?`
     : `SELECT m.id, m.circle_id, m.sender_id, u.name AS sender_name,
          u.initials AS sender_initials, u.avatar_gradient_index AS sender_gradient,
-         m.type, m.text, m.voice_duration, m.memory_caption, m.created_at
+         m.type, m.text, m.voice_duration, m.memory_caption, m.media_id, m.created_at
        FROM messages m JOIN users u ON u.id = m.sender_id
        WHERE m.circle_id = ?
        ORDER BY m.created_at DESC LIMIT ?`;
@@ -509,6 +519,32 @@ async function listMessages(circleId: string, userId: string, url: URL, env: Env
   return json(ordered.map(mapMessage));
 }
 
+async function notifyCircleMembers(env: Env, circleId: string, senderId: string, title: string, body: string) {
+  try {
+    const { results } = await env.DB.prepare(
+      'SELECT u.push_token FROM users u JOIN circle_members cm ON u.id = cm.user_id WHERE cm.circle_id = ? AND u.id != ? AND u.push_token IS NOT NULL'
+    ).bind(circleId, senderId).all<{ push_token: string }>();
+    
+    const tokens = results.map(r => r.push_token).filter(Boolean);
+    if (tokens.length === 0) return;
+    
+    const messages = tokens.map(to => ({
+      to,
+      sound: 'default',
+      title,
+      body,
+    }));
+    
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messages)
+    });
+  } catch (e) {
+    console.error('Push error:', e);
+  }
+}
+
 async function sendMessage(request: Request, circleId: string, userId: string, env: Env): Promise<Response> {
   const isMember = await env.DB.prepare(
     'SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ?'
@@ -516,28 +552,44 @@ async function sendMessage(request: Request, circleId: string, userId: string, e
   if (!isMember) return unauthorized();
 
   const body = await request.json() as {
-    type?: string; text?: string; voiceDuration?: string; memoryCaption?: string;
+    type?: string; text?: string; voiceDuration?: string; memoryCaption?: string; mediaId?: string;
   };
   if (!body.type) return badRequest('Message type is required');
   if (body.type === 'text' && !body.text?.trim()) return badRequest('Text is required');
 
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO messages (id, circle_id, sender_id, type, text, voice_duration, memory_caption)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO messages (id, circle_id, sender_id, type, text, voice_duration, memory_caption, media_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, circleId, userId, body.type,
     body.text?.trim() ?? null,
     body.voiceDuration ?? null,
     body.memoryCaption ?? null,
+    body.mediaId ?? null,
   ).run();
 
   const row = await env.DB.prepare(
     `SELECT m.id, m.circle_id, m.sender_id, u.name AS sender_name,
        u.initials AS sender_initials, u.avatar_gradient_index AS sender_gradient,
-       m.type, m.text, m.voice_duration, m.memory_caption, m.created_at
+       m.type, m.text, m.voice_duration, m.memory_caption, m.media_id, m.created_at
      FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?`
   ).bind(id).first<MessageRow>();
+
+  // Send Push Notification
+  try {
+    const circle = await env.DB.prepare('SELECT name FROM circles WHERE id = ?').bind(circleId).first<{name: string}>();
+    const senderName = row?.sender_name ?? 'Someone';
+    const circleName = circle?.name ?? 'your circle';
+    
+    let pushBody = 'Sent a message';
+    if (body.type === 'text') pushBody = body.text ?? '';
+    else if (body.type === 'memory') pushBody = 'Shared a memory 📷';
+    
+    await notifyCircleMembers(env, circleId, userId, `${senderName} in ${circleName}`, pushBody);
+  } catch (e) {
+    console.warn(e);
+  }
 
   return json(row ? mapMessage(row) : { id }, { status: 201 });
 }
@@ -584,6 +636,18 @@ async function createPlan(request: Request, circleId: string, userId: string, en
     env.DB.prepare('INSERT OR IGNORE INTO plan_members (plan_id, user_id) VALUES (?, ?)')
       .bind(id, userId),
   ]);
+
+  try {
+    const circle = await env.DB.prepare('SELECT name FROM circles WHERE id = ?').bind(circleId).first<{name: string}>();
+    const sender = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(userId).first<{name: string}>();
+    const senderName = sender?.name ?? 'Someone';
+    const circleName = circle?.name ?? 'your circle';
+    
+    await notifyCircleMembers(env, circleId, userId, `${senderName} in ${circleName}`, `Created a new plan: ${body.title.trim()}`);
+  } catch (e) {
+    console.warn(e);
+  }
+
   return json({ id }, { status: 201 });
 }
 
@@ -694,6 +758,7 @@ export default {
 
       if (method === 'GET'   && path === '/users/me')       return userId ? getMe(userId, env) : unauthorized();
       if (method === 'PATCH' && path === '/users/me')       return userId ? updateMe(request, userId, env) : unauthorized();
+      if (method === 'PATCH' && path === '/users/me/push-token') return userId ? updatePushToken(request, userId, env) : unauthorized();
       if (method === 'GET'   && path === '/users/search')   return userId ? searchUsers(url, env) : unauthorized();
 
       if (!userId) return unauthorized();

@@ -49,6 +49,7 @@ export type Message = {
   voiceDuration?: string;
   poll?: Poll;
   memoryCaption?: string;
+  mediaId?: string;
   timestamp: string;
 };
 

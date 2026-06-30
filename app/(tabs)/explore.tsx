@@ -12,13 +12,14 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { CIRCLE_ICONS } from '../../constants/assets';
 import { searchUsers } from '../../data/api';
 import { USER_AVATARS } from '../../constants/assets';
-import { useToast } from '../providers/ToastProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 // ── Mock public circles for UI demo ──────────────────────────────────────────
 const FEATURED_CIRCLES = [
@@ -72,7 +73,7 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Header ── */}
+        {/* ── Header & Search ── */}
         <View style={styles.header}>
           <Text style={styles.pageTitle}>Explore</Text>
           <Text style={styles.pageSubtitle}>Discover circles and people</Text>
@@ -228,12 +229,15 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: Colors.background },
 
+  headerGradient: {
+    marginBottom: 0,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 18,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   pageTitle: {
     fontSize: 34,
@@ -273,6 +277,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '500',
     padding: 0,
+    backgroundColor: 'transparent',
   },
 
   categoriesRow: {
@@ -489,3 +494,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+

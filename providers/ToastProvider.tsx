@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, ReactNode, useEffec
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { Colors } from '../constants/colors';
 
 export type ToastType = 'success' | 'error' | 'info';
 

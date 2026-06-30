@@ -1,7 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { AuthUser, getMe, loginUser, registerUser } from '../data/api';
+import { AuthUser, getMe, loginUser, registerUser, updateMe } from '../data/api';
 import { getAuthToken, removeAuthToken, setAuthToken } from '../data/authStorage';
+
+// Push notifications require a development/production build (not Expo Go SDK 53+).
+// Token sync is stubbed here — re-enable with expo-notifications when building a dev build.
+async function registerForPushNotificationsAsync(): Promise<string | null> {
+  return null;
+}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -16,6 +22,7 @@ type AuthContextValue = {
   }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (input: { avatarId?: string; photoUri?: string | null; name?: string; bio?: string; username?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -32,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const nextUser = await getMe();
-      setUser(nextUser);
+      const serverUser = await getMe();
+      setUser(serverUser);
     } catch {
       await removeAuthToken();
       setUser(null);
@@ -66,6 +73,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback(async (input: {
+    avatarId?: string;
+    photoUri?: string | null;
+    name?: string;
+    bio?: string;
+    username?: string;
+  }) => {
+    // 1. Capture previous state for rollback
+    let previousUser: AuthUser | null = null;
+    setUser((prev) => {
+      previousUser = prev;
+      return prev ? { ...prev, ...input } : prev;
+    });
+
+    // 2. Try to sync with backend
+    try {
+      const updated = await updateMe(input);
+      setUser(updated);
+    } catch {
+      // Revert if API fails
+      setUser(previousUser);
+      console.warn('[updateUser] API sync failed — reverting state.');
+    }
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     isLoading,
@@ -74,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     refreshUser,
-  }), [isLoading, login, logout, refreshUser, register, user]);
+    updateUser,
+  }), [isLoading, login, logout, refreshUser, register, updateUser, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

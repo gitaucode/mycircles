@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { searchUsers, addCircleMember, AuthUser } from '../../data/api';
 import { USER_AVATARS } from '../../constants/assets';
-import { useToast } from '../providers/ToastProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 export default function AddMemberModal() {
   const { circleId } = useLocalSearchParams<{ circleId: string }>();
@@ -213,3 +213,4 @@ const styles = StyleSheet.create({
   },
   addBtnDone: { backgroundColor: Colors.success },
 });
+

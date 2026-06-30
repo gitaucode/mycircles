@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   Share,
   Image,
   Modal,
@@ -13,11 +12,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCircles } from '../../hooks/useCircles';
 import { Colors } from '../../constants/colors';
 import { USER_AVATARS } from '../../constants/assets';
-import { useToast } from '../providers/ToastProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 const SETTINGS = [
   {
@@ -70,12 +70,17 @@ export default function ProfileScreen() {
   const toast = useToast();
   const [showLogout, setShowLogout] = useState(false);
   const displayName = user?.name ?? 'Your profile';
-  const username = user?.username ?? '@you';
+  const rawUsername = user?.username ?? 'you';
+  const username = rawUsername.startsWith('@') ? rawUsername : `@${rawUsername}`;
   const initials = user?.initials ?? displayName.slice(0, 1).toUpperCase();
   const bio = user?.bio?.trim() || 'No bio yet';
   const totalPeople = circles.reduce((acc, circle) => acc + circle.memberCount, 0);
   const gradient = Colors.avatarGradients[user?.gradientIndex ?? 0] ?? Colors.gradientViolet;
   const shareLink = `mycircles.app/${username.replace(/^@/, '')}`;
+  // Use custom photo if set, otherwise fall back to preset avatar
+  const avatarSource = user?.photoUri
+    ? { uri: user.photoUri }
+    : USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1'];
 
   function handleLogout() {
     setShowLogout(true);
@@ -104,9 +109,9 @@ export default function ProfileScreen() {
               <Ionicons name="notifications-outline" size={19} color="#111827" />
               <View style={styles.notifDot} />
             </Pressable>
-            <Image 
-              source={USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
-              style={styles.headerAvatarImage} 
+            <Image
+              source={avatarSource}
+              style={styles.headerAvatarImage}
             />
           </View>
         </View>
@@ -115,9 +120,9 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           {/* Avatar */}
           <Pressable style={styles.avatarWrap} onPress={() => router.push('/modal/edit-avatar')}>
-            <Image 
-              source={USER_AVATARS[user?.avatarId as keyof typeof USER_AVATARS] || USER_AVATARS['avatar_1']} 
-              style={styles.avatarImage} 
+            <Image
+              source={avatarSource}
+              style={styles.avatarImage}
             />
             <View style={styles.badge}>
               <Ionicons name="pencil" size={11} color="#fff" />
@@ -128,6 +133,13 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.username}>{username}</Text>
           <Text style={styles.bio}>{bio}</Text>
+
+          <Pressable
+            style={({ pressed }) => [styles.editBioBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/modal/edit-profile')}
+          >
+            <Text style={styles.editBioText}>Edit Profile</Text>
+          </Pressable>
 
           {/* Divider */}
           <View style={styles.dividerRow}>
@@ -203,7 +215,13 @@ export default function ProfileScreen() {
                 i < SETTINGS.length - 1 && styles.rowBorder,
                 pressed && { backgroundColor: '#F9F8FF' },
               ]}
-              onPress={() => toast.show('Coming soon!', 'info')}
+              onPress={() => {
+                if (s.id === 'account') {
+                  router.push('/modal/edit-profile');
+                } else {
+                  toast.show('Coming soon!', 'info');
+                }
+              }}
             >
               <View style={[styles.iconBox, { backgroundColor: s.bg }]}>
                 <Ionicons name={s.icon} size={18} color={s.color} />
@@ -260,15 +278,18 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: Colors.background },
 
+  headerGradient: {
+    marginBottom: 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 18,
+    paddingBottom: 28,
   },
   pageTitle: {
     fontSize: 34,
@@ -287,9 +308,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   notifDot: {
     position: 'absolute',
@@ -306,9 +334,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#E5E7EB',
   },
 
   // Card
@@ -370,6 +398,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 2,
+  },
+  editBioBtn: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  editBioText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
   },
   dividerRow: {
     flexDirection: 'row',
@@ -566,3 +606,4 @@ const styles = StyleSheet.create({
     color: '#EF4444',
   },
 });
+

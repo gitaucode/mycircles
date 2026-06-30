@@ -16,6 +16,7 @@ export type ChatMessage = {
   text?: string;
   voiceDuration?: string;
   memoryCaption?: string;
+  mediaId?: string;
   timestamp: string;
 };
 
@@ -39,6 +40,10 @@ async function fetchMessages(
 async function postMessage(
   circleId: string,
   text: string,
+  type: string = 'text',
+  memoryCaption?: string,
+  mediaId?: string,
+  voiceDuration?: string,
 ): Promise<ChatMessage | null> {
   if (!API_URL) return null;
   const token = await getAuthToken();
@@ -48,7 +53,7 @@ async function postMessage(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ type: 'text', text }),
+    body: JSON.stringify({ type, text, memoryCaption, mediaId, voiceDuration }),
   });
   if (!res.ok) return null;
   return res.json();
@@ -92,13 +97,16 @@ export function useMessages(circleId: string) {
     };
   }, [circleId]);
 
-  const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    const msg = await postMessage(circleId, text);
-    if (!msg) return false;
-    setMessages((prev) => [...prev, msg]);
-    lastTimestampRef.current = msg.timestamp;
-    return true;
-  }, [circleId]);
+  const sendMessage = useCallback(
+    async (text: string, type: string = 'text', memoryCaption?: string, mediaId?: string, voiceDuration?: string) => {
+      const msg = await postMessage(circleId, text, type, memoryCaption, mediaId, voiceDuration);
+      if (msg) {
+        setMessages((prev) => [...prev, msg]);
+        lastTimestampRef.current = msg.timestamp;
+      }
+    },
+    [circleId],
+  );
 
   return { messages, isLoading, sendMessage };
 }

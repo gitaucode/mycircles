@@ -41,6 +41,7 @@ export type AuthUser = {
   initials: string;
   gradientIndex: number;
   avatarId?: string;
+  photoUri?: string | null;
   bio?: string | null;
 };
 
@@ -110,11 +111,18 @@ export function createCircle(input: {
 export function updateMe(input: {
   name?: string;
   bio?: string;
+  username?: string;
+  avatarId?: string;
+  photoUri?: string | null;
 }): Promise<AuthUser> {
   return request<AuthUser>('/users/me', {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
+}
+
+export function checkUsername(username: string): Promise<{ available: boolean }> {
+  return request<{ available: boolean }>(`/users/check-username?username=${encodeURIComponent(username)}`);
 }
 
 export function searchUsers(q: string): Promise<AuthUser[]> {
@@ -170,5 +178,42 @@ export function rsvpPlan(
   return request<{ ok: boolean; status: string }>(`/plans/${planId}/rsvp`, {
     method: 'POST',
     body: JSON.stringify({ status }),
+  });
+}
+
+export type PlanRsvp = {
+  user_id: string;
+  status: 'in' | 'out' | 'maybe';
+  name: string;
+  initials: string;
+  gradient_index: number;
+};
+
+export function getPlanRsvps(planId: string): Promise<PlanRsvp[]> {
+  return request<PlanRsvp[]>(`/plans/${planId}/rsvps`);
+}
+
+export async function uploadMedia(fileUri: string, mimeType: string, circleId?: string): Promise<{ id: string; key: string }> {
+  if (!API_URL) throw new ApiError('API_URL not configured', 0);
+  const token = await getAuthToken();
+  const fileResp = await fetch(fileUri);
+  const blob = await fileResp.blob();
+  const response = await fetch(`${API_URL}/media`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': mimeType,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(circleId ? { 'X-Circle-Id': circleId } : {}),
+    },
+    body: blob,
+  });
+  if (!response.ok) throw new ApiError('Failed to upload media', response.status);
+  return response.json();
+}
+
+export function syncPushToken(token: string): Promise<void> {
+  return request<void>('/users/me/push-token', {
+    method: 'PATCH',
+    body: JSON.stringify({ pushToken: token }),
   });
 }

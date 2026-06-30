@@ -137,18 +137,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="person" color={color} focused={focused} label="Profile" />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="explore"
         options={{
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="compass" color={color} focused={focused} label="Explore" />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="person" color={color} focused={focused} label="Profile" />
           ),
         }}
       />

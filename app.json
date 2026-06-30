@@ -32,6 +32,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8e94e5b7-def6-4b10-9d44-5058bd1522bf"
+      }
+    },
+    "owner": "gitgitau"
   }
 }
